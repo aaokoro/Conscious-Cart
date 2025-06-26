@@ -1,3 +1,14 @@
+Project Plan google doc link (https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)
+
+WireFrames:
+**insert** wireframes 
+
+
+Data Models:
+
+Endpoints:
+**Note** put endpoints file in to read me
+
 # Skincare App API Endpoints
 
 ## Authentication & User Management
@@ -7,7 +18,7 @@
 | POST | /api/auth/register | Create a new user account | Sign Up |
 | POST | /api/auth/login | Authenticate user and return token | Log In |
 | POST | /api/auth/forgot-password | Initiate password reset process | Log In |
-| POST | /api/auth/regit pull --rebase origin maingit pull --rebase origin mainset-password | Complete password reset with token | Password Reset |
+| POST | /api/auth/reset-password | Complete password reset with token | Password Reset |
 | GET | /api/users/me | Retrieve current user profile information | Profile Summary |
 | PUT | /api/users/me | Update user profile information | Profile Summary |
 | DELETE | /api/users/me | Delete user account | Profile Settings |
@@ -88,3 +99,6 @@
 |-----------|----------|-------------|--------|
 | GET | /api/products/:id/retailers | Get retailer links for a product | Product Detail |
 | POST | /api/retailers/click/:id | Record when user clicks on retailer link | Product Detail |
+
+
+
