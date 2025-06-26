@@ -1,7 +1,7 @@
-Project Plan google doc link (https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)
+Project Plan doc **(https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)**
 
-WireFrames:
-**insert** wireframes 
+WireFrames doc:
+**(https://docs.google.com/document/d/15G8LS8frwbdZZP93xznOS-0XFSWOV4cFLCoAmbkF7yk/edit?usp=sharing)**  
 
 
 Data Models:
