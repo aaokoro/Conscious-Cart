@@ -98,5 +98,4 @@ Endpoints:
 | GET | /api/products/:id/retailers | Get retailer links for a product | Product Detail |
 | POST | /api/retailers/click/:id | Record when user clicks on retailer link | Product Detail |
 
-
-
+//TODO: Info about API 
