@@ -1,48 +1,92 @@
 import { useState, useEffect } from 'react'
+import SkincareAPI from '../services/api'
+import './ProductRecommendations.css'
 
 function ProductRecommendations({ onProductSelect, onBack }) {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState([]) 
+  const [loading, setLoading] = useState(true) 
+  const [error, setError] = useState('') 
+  const [searchQuery, setSearchQuery] = useState('') 
+  const [isSearching, setIsSearching] = useState(false) 
 
-  // Mock product data for now
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProducts([
-        {
-          id: 1,
-          name: "Gentle Cleanser",
-          brand: "SkinCare Pro",
-          price: 24.99,
-          rating: 4.5,
-          image: "/api/placeholder/200/200",
-          description: "A gentle, non-drying cleanser perfect for sensitive skin.",
-          skinType: "Sensitive"
-        },
-        {
-          id: 2,
-          name: "Hydrating Serum",
-          brand: "GlowUp",
-          price: 39.99,
-          rating: 4.8,
-          image: "/api/placeholder/200/200",
-          description: "Intensive hydrating serum with hyaluronic acid.",
-          skinType: "Dry"
-        },
-        {
-          id: 3,
-          name: "Oil Control Moisturizer",
-          brand: "ClearSkin",
-          price: 29.99,
-          rating: 4.3,
-          image: "/api/placeholder/200/200",
-          description: "Lightweight moisturizer that controls oil without drying.",
-          skinType: "Oily"
-        }
-      ])
-      setLoading(false)
-    }, 1000)
+    loadRecommendations()
   }, [])
+
+  async function loadRecommendations() {
+    setLoading(true)
+    setError('') 
+
+    try {
+      const skinConcerns = ['hydrating', 'gentle']
+      const skinType = 'normal'
+      const maxProducts = 12
+
+      const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
+      setProducts(data) 
+    } catch (err) {
+      setError('Failed to load recommendations. Please try again.')
+    }
+
+    setLoading(false)
+  }
+
+  async function handleSearch(event) {
+    event.preventDefault() 
+    if (!searchQuery.trim()) {
+      return
+    }
+
+    setIsSearching(true)
+    setError('') 
+
+    try {
+      const maxResults = 12
+      const data = await SkincareAPI.searchProducts(searchQuery, maxResults)
+      setProducts(data) 
+    } catch (err) {
+      setError('Search failed. Please try again.')
+    }
+
+    setIsSearching(false)
+  }
+
+  async function searchForProductType(productType) {
+    setIsSearching(true)
+    setError('') 
+
+    try {
+      const maxResults = 12
+      const data = await SkincareAPI.searchProducts(productType, maxResults)
+      setProducts(data) 
+    } catch (err) {
+      setError('Search failed. Please try again.')
+    }
+
+    setIsSearching(false)
+  }
+
+  function makeProductNameNice(name) {
+    const words = name.split(' ')
+    const capitalizedWords = []
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]
+      const capitalizedWord = word.charAt(0).toUpperCase() + word.slice(1)
+      capitalizedWords.push(capitalizedWord)
+    }
+
+    return capitalizedWords.join(' ')
+  }
+
+  function makeBrandNameNice(brand) {
+    return brand.charAt(0).toUpperCase() + brand.slice(1)
+  }
+
+  function getTopThreeIngredients(ingredientList) {
+    const firstThree = ingredientList.slice(0, 3)
+    return firstThree.join(', ')
+  }
 
   if (loading) {
     return (
@@ -61,37 +105,103 @@ function ProductRecommendations({ onProductSelect, onBack }) {
   return (
     <div className="recommendations">
       <div className="recommendations-header">
+        {/* Back button */}
         <button className="btn btn-back" onClick={onBack}>
           ← Back to Dashboard
         </button>
+
         <h2>Your Personalized Recommendations</h2>
         <p>Based on your skin profile, here are products we recommend for you:</p>
+
+        {/* Search form */}
+        <form onSubmit={handleSearch} className="search-form">
+          <div className="search-input-group">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for products, brands, or ingredients..."
+              className="search-input"
+            />
+            <button
+              type="submit"
+              className="btn btn-primary search-btn"
+              disabled={isSearching}
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+        </form>
+
+        {/* Quick filter buttons */}
+        <div className="filter-buttons">
+          <button
+            className="btn btn-secondary"
+            onClick={loadRecommendations}
+          >
+            Show Recommendations
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('serum')}
+          >
+            Serums
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('moisturizer')}
+          >
+            Moisturizers
+          </button>
+        </div>
       </div>
 
+      {/* Show error message if there is one */}
+      {error && (
+        <div className="error-message">
+          {error}
+          <button onClick={loadRecommendations} className="btn btn-secondary">
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Products grid */}
       <div className="products-grid">
-        {products.map(product => (
-          <div key={product.id} className="product-card">
-            <div className="product-image">
-              <img src={product.image} alt={product.name} />
-            </div>
-            <div className="product-info">
-              <h3>{product.name}</h3>
-              <p className="brand">{product.brand}</p>
-              <p className="description">{product.description}</p>
-              <div className="product-meta">
-                <span className="price">${product.price}</span>
-                <span className="rating">★ {product.rating}</span>
-              </div>
-              <span className="skin-type">For {product.skinType} Skin</span>
-              <button
-                className="btn btn-primary"
-                onClick={() => onProductSelect(product)}
-              >
-                View Details
-              </button>
-            </div>
+        {/* If no products found, show message */}
+        {products.length === 0 && !loading ? (
+          <div className="no-products">
+            <p>No products found. Try a different search term.</p>
           </div>
-        ))}
+        ) : (
+          products.map(product => (
+            <div key={product.id} className="product-card">
+              {/* Product image placeholder */}
+              <div className="product-image">
+                <div className="placeholder-image">
+                  <span className="product-icon">🧴</span>
+                </div>
+              </div>
+              {/* Product information */}
+              <div className="product-info">
+                <h3>{makeProductNameNice(product.name)}</h3>
+                <p className="brand">{makeBrandNameNice(product.brand)}</p>
+                <p className="ingredients">
+                  <strong>Key Ingredients:</strong> {getTopThreeIngredients(product.ingredient_list)}
+                </p>
+                <p className="ingredient-count">
+                  {product.ingredient_list.length} total ingredients
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => onProductSelect(product)}
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
