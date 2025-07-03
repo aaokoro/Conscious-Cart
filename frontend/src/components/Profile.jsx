@@ -37,7 +37,6 @@ function Profile({ user, onBack }) {
   }
 
   const handleCancel = () => {
-    // Reset to original data
     setProfileData({
       name: user?.name || '',
       email: user?.email || '',
@@ -175,5 +174,4 @@ function Profile({ user, onBack }) {
     </div>
   )
 }
-
 export default Profile

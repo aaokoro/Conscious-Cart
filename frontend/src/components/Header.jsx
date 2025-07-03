@@ -5,7 +5,7 @@ function Header({ user, onLogout, onNavigate }) {
     <header className="header">
       <div className="header-content">
         <div className="logo">
-          <h1>SkinCare App</h1>
+          <h1>Skinfluence</h1>
         </div>
 
         <nav className="nav">
@@ -44,5 +44,4 @@ function Header({ user, onLogout, onNavigate }) {
     </header>
   )
 }
-
 export default Header
