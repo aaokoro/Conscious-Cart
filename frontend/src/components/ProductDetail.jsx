@@ -1,12 +1,9 @@
-// Import React tools we need
 import { useState } from 'react'
 import './ProductDetail.css'
 
-// This component shows detailed information about a single product
 function ProductDetail({ product, onBack }) {
-  // State variables to track what user is doing
-  const [showAllIngredients, setShowAllIngredients] = useState(false) // Should we show all ingredients?
-  const [addedToFavorites, setAddedToFavorites] = useState(false) // Did user add to favorites?
+  const [showAllIngredients, setShowAllIngredients] = useState(false)
+  const [addedToFavorites, setAddedToFavorites] = useState(false)
 
   // If no product was passed to this component, show error
   if (!product) {
@@ -24,8 +21,8 @@ function ProductDetail({ product, onBack }) {
     const words = name.split(' ')
     const capitalizedWords = []
 
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i]
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+      const word = words[wordIndex]
       const capitalizedWord = word.charAt(0).toUpperCase() + word.slice(1)
       capitalizedWords.push(capitalizedWord)
     }
@@ -47,8 +44,8 @@ function ProductDetail({ product, onBack }) {
 
   function getKeyIngredients() {
     const firstFive = []
-    for (let i = 0; i < 5 && i < product.ingredient_list.length; i++) {
-      firstFive.push(product.ingredient_list[i])
+    for (let ingredientIndex = 0; ingredientIndex < 5 && ingredientIndex < product.ingredient_list.length; ingredientIndex++) {
+      firstFive.push(product.ingredient_list[ingredientIndex])
     }
     return firstFive
   }
@@ -83,9 +80,9 @@ function ProductDetail({ product, onBack }) {
 
   function toggleShowAllIngredients() {
     if (showAllIngredients) {
-      setShowAllIngredients(false) 
+      setShowAllIngredients(false)
     } else {
-      setShowAllIngredients(true) 
+      setShowAllIngredients(true)
     }
   }
 

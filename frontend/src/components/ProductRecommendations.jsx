@@ -3,11 +3,11 @@ import SkincareAPI from '../services/api'
 import './ProductRecommendations.css'
 
 function ProductRecommendations({ onProductSelect, onBack }) {
-  const [products, setProducts] = useState([]) 
-  const [loading, setLoading] = useState(true) 
-  const [error, setError] = useState('') 
-  const [searchQuery, setSearchQuery] = useState('') 
-  const [isSearching, setIsSearching] = useState(false) 
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
     loadRecommendations()
@@ -15,7 +15,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
   async function loadRecommendations() {
     setLoading(true)
-    setError('') 
+    setError('')
 
     try {
       const skinConcerns = ['hydrating', 'gentle']
@@ -23,7 +23,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       const maxProducts = 12
 
       const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
-      setProducts(data) 
+      setProducts(data)
     } catch (err) {
       setError('Failed to load recommendations. Please try again.')
     }
@@ -32,18 +32,18 @@ function ProductRecommendations({ onProductSelect, onBack }) {
   }
 
   async function handleSearch(event) {
-    event.preventDefault() 
+    event.preventDefault()
     if (!searchQuery.trim()) {
       return
     }
 
     setIsSearching(true)
-    setError('') 
+    setError('')
 
     try {
       const maxResults = 12
       const data = await SkincareAPI.searchProducts(searchQuery, maxResults)
-      setProducts(data) 
+      setProducts(data)
     } catch (err) {
       setError('Search failed. Please try again.')
     }
@@ -53,12 +53,12 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
   async function searchForProductType(productType) {
     setIsSearching(true)
-    setError('') 
+    setError('')
 
     try {
       const maxResults = 12
       const data = await SkincareAPI.searchProducts(productType, maxResults)
-      setProducts(data) 
+      setProducts(data)
     } catch (err) {
       setError('Search failed. Please try again.')
     }
@@ -70,8 +70,8 @@ function ProductRecommendations({ onProductSelect, onBack }) {
     const words = name.split(' ')
     const capitalizedWords = []
 
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i]
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+      const word = words[wordIndex]
       const capitalizedWord = word.charAt(0).toUpperCase() + word.slice(1)
       capitalizedWords.push(capitalizedWord)
     }

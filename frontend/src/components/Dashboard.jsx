@@ -1,8 +1,6 @@
-// Import React and our CSS styles
 import React from 'react'
 import './Dashboard.css'
 
-// This component shows the main dashboard page after user logs in
 function Dashboard({ user, onNavigate }) {
 
   // Function to handle clicking on action cards
@@ -32,7 +30,7 @@ function Dashboard({ user, onNavigate }) {
         <div className="hero-stats">
           <div className="stat-item">
             <span className="stat-number">12</span>
-            <span className="stat-label">Products Tried</span>
+            <span className="stat-label">Previously Used</span>
           </div>
           <div className="stat-item">
             <span className="stat-number">85%</span>
