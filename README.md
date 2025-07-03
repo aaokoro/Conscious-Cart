@@ -1,7 +1,7 @@
 Project Plan doc **(https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)**
 
 WireFrames doc:
-**(https://docs.google.com/document/d/1JOvZd_PdkN14WlO7gUfa6tTbq5l20FE4hTXqGoP44qw/edit?usp=sharing)**  
+**(https://docs.google.com/document/d/1JOvZd_PdkN14WlO7gUfa6tTbq5l20FE4hTXqGoP44qw/edit?usp=sharing)**
 
 
 Endpoints:
@@ -97,6 +97,3 @@ Endpoints:
 |-----------|----------|-------------|--------|
 | GET | /api/products/:id/retailers | Get retailer links for a product | Product Detail |
 | POST | /api/retailers/click/:id | Record when user clicks on retailer link | Product Detail |
-
-//TODO: Info about API 
-...

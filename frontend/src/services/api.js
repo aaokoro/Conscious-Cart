@@ -1,52 +1,29 @@
 const API_WEBSITE = 'https://skincare-api.herokuapp.com'
 
-const BACKUP_PRODUCTS = [
-  {
-    id: 1,
-    brand: "cerave",
-    name: "hydrating cleanser",
-    ingredient_list: ["water", "glycerin", "cocamidopropyl betaine", "sodium lauroyl sarcosinate", "peg-150 pentaerythrityl tetrastearate", "niacinamide", "peg-6 caprylic/capric glycerides", "sodium hyaluronate", "ceramide np", "ceramide ap", "ceramide eop", "carbomer", "methylparaben", "sodium chloride", "sodium lauroyl lactylate", "cholesterol", "phenoxyethanol", "disodium edta", "dipotassium phosphate", "sodium phosphate", "tocopherol", "phytosphingosine", "xanthan gum", "ethylhexylglycerin"]
-  },
-  {
-    id: 2,
-    brand: "the ordinary",
-    name: "niacinamide 10% + zinc 1%",
-    ingredient_list: ["aqua", "niacinamide", "pentylene glycol", "zinc pca", "dimethyl isosorbide", "tamarindus indica seed gum", "xanthan gum", "isoceteth-20", "ethoxydiglycol", "phenoxyethanol", "chlorphenesin"]
-  },
-  {
-    id: 3,
-    brand: "neutrogena",
-    name: "hydro boost water gel",
-    ingredient_list: ["water", "dimethicone", "glycerin", "cetearyl olivate", "sorbitan olivate", "phenoxyethanol", "synthetic beeswax", "trehalose", "carbomer", "sodium hyaluronate", "ethylhexylglycerin", "c12-20 alkyl glucoside", "sodium hydroxide", "caprylyl glycol"]
-  },
-  {
-    id: 4,
-    brand: "la roche posay",
-    name: "toleriane caring wash",
-    ingredient_list: ["aqua", "glycerin", "sodium cocoyl isethionate", "arginine", "peg-200 hydrogenated glyceryl palmate", "coco-betaine", "peg-7 glyceryl cocoate", "phenoxyethanol", "peg-120 methyl glucose dioleate", "niacinamide", "sodium chloride", "sodium benzoate", "citric acid", "zinc gluconate", "copper gluconate", "manganese gluconate"]
-  },
-  {
-    id: 5,
-    brand: "olay",
-    name: "regenerist micro-sculpting serum",
-    ingredient_list: ["water", "dimethicone", "isohexadecane", "glycerin", "isopropyl isostearate", "polyacrylamide", "olea europaea fruit oil", "tocopheryl acetate", "sodium pca", "c13-14 isoparaffin", "dimethiconol", "laureth-7", "cyclopentasiloxane", "phenoxyethanol", "methylparaben", "ethylparaben", "propylparaben", "butylparaben", "isobutylparaben", "fragrance"]
-  },
-  {
-    id: 6,
-    brand: "aveeno",
-    name: "daily moisturizing lotion",
-    ingredient_list: ["water", "glycerin", "distearyldimonium chloride", "petrolatum", "isopropyl palmitate", "cetyl alcohol", "avena sativa kernel flour", "benzyl alcohol", "sodium chloride"]
+function handleApiError(error, context = 'API request') {
+  const errorMessage = `${context} failed: ${error.message}`
+  console.error(errorMessage, {
+    timestamp: new Date().toISOString(),
+    context,
+    originalError: error
+  })
+
+  return {
+    success: false,
+    error: 'Service temporarily unavailable. Please try again later.',
+    data: null
   }
-]
+}
+
 
 async function getAllProducts(maxProducts = 20, pageNumber = 1) {
   try {
     const requestUrl = `${API_WEBSITE}/products?limit=${maxProducts}&page=${pageNumber}`
 
     const response = await fetch(requestUrl, {
-      method: 'GET', 
+      method: 'GET',
       headers: {
-        'Accept': 'application/json', 
+        'Accept': 'application/json',
       },
     })
 
@@ -57,13 +34,7 @@ async function getAllProducts(maxProducts = 20, pageNumber = 1) {
     return await response.json()
 
   } catch (error) {
-    console.warn('Main API not working, using backup data:', error.message)
-
-    const productsToReturn = []
-    for (let i = 0; i < maxProducts && i < BACKUP_PRODUCTS.length; i++) {
-      productsToReturn.push(BACKUP_PRODUCTS[i])
-    }
-    return productsToReturn
+    return handleApiError(error, 'Get all products')
   }
 }
 
@@ -80,7 +51,7 @@ async function getProductById(productId) {
     return await response.json()
 
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Get product by ID')
   }
 }
 
@@ -99,7 +70,7 @@ async function searchProducts(searchText, maxResults = 20, pageNumber = 1) {
     return await response.json()
 
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Search products')
   }
 }
 
@@ -116,7 +87,7 @@ async function getAllIngredients() {
     return await response.json()
 
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Get all ingredients')
   }
 }
 
@@ -135,7 +106,7 @@ async function searchIngredients(searchText, maxResults = 20, pageNumber = 1) {
     return await response.json()
 
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Search ingredients')
   }
 }
 
@@ -144,11 +115,11 @@ async function addProduct(productInfo) {
     const requestUrl = `${API_WEBSITE}/products`
 
     const response = await fetch(requestUrl, {
-      method: 'POST', 
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json', 
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(productInfo) 
+      body: JSON.stringify(productInfo)
     })
 
     if (!response.ok) {
@@ -158,7 +129,7 @@ async function addProduct(productInfo) {
     return await response.json()
 
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Add product')
   }
 }
 
@@ -166,9 +137,9 @@ async function getRecommendations(skinConcerns = [], skinType = '', maxProducts 
   try {
     const thingsToSearchFor = []
 
-    for (let i = 0; i < skinConcerns.length; i++) {
-      if (skinConcerns[i]) { // Only add if it's not empty
-        thingsToSearchFor.push(skinConcerns[i])
+    for (let concernIndex = 0; concernIndex < skinConcerns.length; concernIndex++) {
+      if (skinConcerns[concernIndex]) {
+        thingsToSearchFor.push(skinConcerns[concernIndex])
       }
     }
     if (skinType) {
@@ -187,7 +158,7 @@ async function getRecommendations(skinConcerns = [], skinType = '', maxProducts 
     return await searchProducts(searchText, maxProducts, 1)
 
   } catch (error) {
-    return await getAllProducts(maxProducts, 1)
+    return handleApiError(error, 'Get recommendations')
   }
 }
 
@@ -195,7 +166,7 @@ async function getProductsByIngredient(ingredientName, maxProducts = 20) {
   try {
     return await searchProducts(ingredientName, maxProducts, 1)
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Get products by ingredient')
   }
 }
 
@@ -205,7 +176,7 @@ async function getTrendingProducts(maxProducts = 10) {
 
     return await getAllProducts(maxProducts, randomPageNumber)
   } catch (error) {
-    throw error
+    return handleApiError(error, 'Get trending products')
   }
 }
 
