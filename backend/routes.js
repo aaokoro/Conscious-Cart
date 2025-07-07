@@ -7,38 +7,162 @@ const mongoose = require('mongoose');
 // Mock data for when MongoDB is not available
 const mockProducts = [
   {
-    _id: '1',
-    name: "Gentle Cleanser",
-    brand: "SkinCare Pro",
+    id: 1,
+    name: "gentle hydrating cleanser",
+    brand: "cerave",
     price: 24.99,
     rating: 4.5,
-    description: "A gentle, non-drying cleanser perfect for sensitive skin.",
-    skinTypes: ["sensitive"],
-    skinConcerns: ["sensitivity"],
+    description: "A gentle, non-drying cleanser perfect for sensitive skin with ceramides and hyaluronic acid.",
+    ingredient_list: ["water", "ceramides", "hyaluronic acid", "glycerin", "niacinamide"],
+    skinTypes: ["sensitive", "dry"],
+    skinConcerns: ["sensitivity", "dryness"],
     isSustainable: true
   },
   {
-    _id: '2',
-    name: "Hydrating Serum",
-    brand: "GlowUp",
+    id: 2,
+    name: "vitamin c brightening serum",
+    brand: "skinceuticals",
     price: 39.99,
     rating: 4.8,
-    description: "Intensive hydrating serum with hyaluronic acid.",
-    skinTypes: ["dry"],
-    skinConcerns: ["dryness"],
+    description: "Intensive brightening serum with vitamin C and ferulic acid.",
+    ingredient_list: ["l-ascorbic acid", "vitamin e", "ferulic acid", "water", "propylene glycol"],
+    skinTypes: ["normal", "combination"],
+    skinConcerns: ["hyperpigmentation", "aging"],
     isSustainable: false
   },
   {
-    _id: '3',
-    name: "Oil Control Moisturizer",
-    brand: "ClearSkin",
+    id: 3,
+    name: "niacinamide oil control moisturizer",
+    brand: "the ordinary",
     price: 29.99,
     rating: 4.3,
-    description: "Lightweight moisturizer that controls oil without drying.",
-    skinTypes: ["oily"],
-    skinConcerns: ["acne"],
+    description: "Lightweight moisturizer that controls oil without drying with niacinamide.",
+    ingredient_list: ["niacinamide", "zinc oxide", "hyaluronic acid", "squalane", "water"],
+    skinTypes: ["oily", "combination"],
+    skinConcerns: ["acne", "oiliness"],
+    isSustainable: true
+  },
+  {
+    id: 4,
+    name: "retinol anti-aging serum",
+    brand: "neutrogena",
+    price: 34.99,
+    rating: 4.6,
+    description: "Powerful anti-aging serum with retinol and peptides.",
+    ingredient_list: ["retinol", "peptides", "vitamin e", "squalane", "dimethicone"],
+    skinTypes: ["normal", "dry"],
+    skinConcerns: ["aging", "fine lines"],
+    isSustainable: false
+  },
+  {
+    id: 5,
+    name: "salicylic acid acne treatment",
+    brand: "paula's choice",
+    price: 32.00,
+    rating: 4.7,
+    description: "BHA liquid exfoliant that unclogs pores and reduces acne.",
+    ingredient_list: ["salicylic acid", "green tea extract", "chamomile", "water", "butylene glycol"],
+    skinTypes: ["oily", "combination"],
+    skinConcerns: ["acne", "blackheads"],
+    isSustainable: true
+  },
+  {
+    id: 6,
+    name: "hyaluronic acid hydrating serum",
+    brand: "the inkey list",
+    price: 19.99,
+    rating: 4.4,
+    description: "Multi-molecular weight hyaluronic acid for deep hydration.",
+    ingredient_list: ["hyaluronic acid", "sodium hyaluronate", "glycerin", "water", "panthenol"],
+    skinTypes: ["dry", "sensitive"],
+    skinConcerns: ["dryness", "dehydration"],
+    isSustainable: true
+  },
+  {
+    id: 7,
+    name: "gentle exfoliating toner",
+    brand: "pixi",
+    price: 28.00,
+    rating: 4.2,
+    description: "Gentle glycolic acid toner for smooth, radiant skin.",
+    ingredient_list: ["glycolic acid", "aloe vera", "ginseng", "water", "witch hazel"],
+    skinTypes: ["normal", "combination"],
+    skinConcerns: ["dullness", "texture"],
+    isSustainable: false
+  },
+  {
+    id: 8,
+    name: "ceramide repair moisturizer",
+    brand: "cerave",
+    price: 26.99,
+    rating: 4.5,
+    description: "Rich moisturizer with ceramides for barrier repair.",
+    ingredient_list: ["ceramides", "cholesterol", "fatty acids", "hyaluronic acid", "dimethicone"],
+    skinTypes: ["dry", "sensitive"],
+    skinConcerns: ["dryness", "barrier damage"],
+    isSustainable: true
+  },
+  {
+    id: 9,
+    name: "zinc sunscreen spf 50",
+    brand: "eltamd",
+    price: 41.00,
+    rating: 4.8,
+    description: "Broad spectrum mineral sunscreen with zinc oxide.",
+    ingredient_list: ["zinc oxide", "titanium dioxide", "octinoxate", "water", "silica"],
+    skinTypes: ["all"],
+    skinConcerns: ["sun protection"],
+    isSustainable: false
+  },
+  {
+    id: 10,
+    name: "peptide firming cream",
+    brand: "olay",
+    price: 37.99,
+    rating: 4.3,
+    description: "Anti-aging cream with peptides and amino acids.",
+    ingredient_list: ["peptides", "amino acids", "niacinamide", "glycerin", "dimethicone"],
+    skinTypes: ["normal", "dry"],
+    skinConcerns: ["aging", "firmness"],
+    isSustainable: false
+  },
+  {
+    id: 11,
+    name: "tea tree oil spot treatment",
+    brand: "the body shop",
+    price: 15.00,
+    rating: 4.1,
+    description: "Targeted acne treatment with tea tree oil.",
+    ingredient_list: ["tea tree oil", "salicylic acid", "witch hazel", "alcohol", "water"],
+    skinTypes: ["oily", "acne-prone"],
+    skinConcerns: ["acne", "blemishes"],
+    isSustainable: true
+  },
+  {
+    id: 12,
+    name: "rose hip oil facial oil",
+    brand: "trilogy",
+    price: 29.99,
+    rating: 4.6,
+    description: "Pure rosehip oil for hydration and anti-aging.",
+    ingredient_list: ["rosehip seed oil", "vitamin e", "linoleic acid", "oleic acid", "palmitic acid"],
+    skinTypes: ["dry", "mature"],
+    skinConcerns: ["aging", "dryness"],
     isSustainable: true
   }
+];
+
+const mockIngredients = [
+  { id: 1, name: "hyaluronic acid", benefits: ["hydration", "plumping"], category: "humectant" },
+  { id: 2, name: "niacinamide", benefits: ["oil control", "pore minimizing"], category: "vitamin" },
+  { id: 3, name: "retinol", benefits: ["anti-aging", "cell turnover"], category: "retinoid" },
+  { id: 4, name: "salicylic acid", benefits: ["exfoliation", "acne treatment"], category: "bha" },
+  { id: 5, name: "vitamin c", benefits: ["brightening", "antioxidant"], category: "vitamin" },
+  { id: 6, name: "ceramides", benefits: ["barrier repair", "moisturizing"], category: "lipid" },
+  { id: 7, name: "glycolic acid", benefits: ["exfoliation", "texture improvement"], category: "aha" },
+  { id: 8, name: "peptides", benefits: ["anti-aging", "firming"], category: "protein" },
+  { id: 9, name: "zinc oxide", benefits: ["sun protection", "anti-inflammatory"], category: "mineral" },
+  { id: 10, name: "tea tree oil", benefits: ["antibacterial", "acne treatment"], category: "essential oil" }
 ];
 
 // Check if MongoDB is connected
@@ -357,6 +481,127 @@ router.get('/api/recommendations/skin-type/:type', (req, res) => {
   const validTypes = ['oily', 'dry', 'combination', 'normal', 'sensitive'];
   if (!validTypes.includes(req.params.type)) return error(res, 'Invalid skin type', 400);
   getRecommendations({ skinTypes: req.params.type }, res);
+});
+
+// Routes that match the frontend API expectations (without /api prefix)
+// These are the endpoints the frontend is actually calling
+
+// GET /products - Get all products with pagination
+router.get('/products', async (req, res) => {
+  try {
+    const { limit = 20, page = 1 } = req.query;
+    const limitNum = parseInt(limit);
+    const pageNum = parseInt(page);
+
+    // Calculate pagination
+    const startIndex = (pageNum - 1) * limitNum;
+    const endIndex = startIndex + limitNum;
+
+    // Return paginated mock products
+    const paginatedProducts = mockProducts.slice(startIndex, endIndex);
+
+    respond(res, paginatedProducts);
+  } catch (err) {
+    console.error('Error in /products:', err);
+    error(res, 'Could not retrieve products');
+  }
+});
+
+// GET /product?q=search - Search products
+router.get('/product', async (req, res) => {
+  try {
+    const { q: searchQuery, limit = 20, page = 1 } = req.query;
+    const limitNum = parseInt(limit);
+    const pageNum = parseInt(page);
+
+    if (!searchQuery) {
+      return respond(res, mockProducts.slice(0, limitNum));
+    }
+
+    // Search in product names, brands, and ingredients
+    const searchTerm = searchQuery.toLowerCase();
+    const filteredProducts = mockProducts.filter(product => {
+      return (
+        product.name.toLowerCase().includes(searchTerm) ||
+        product.brand.toLowerCase().includes(searchTerm) ||
+        product.ingredient_list.some(ingredient =>
+          ingredient.toLowerCase().includes(searchTerm)
+        ) ||
+        product.skinConcerns.some(concern =>
+          concern.toLowerCase().includes(searchTerm)
+        ) ||
+        product.skinTypes.some(type =>
+          type.toLowerCase().includes(searchTerm)
+        )
+      );
+    });
+
+    // Apply pagination
+    const startIndex = (pageNum - 1) * limitNum;
+    const endIndex = startIndex + limitNum;
+    const paginatedResults = filteredProducts.slice(startIndex, endIndex);
+
+    respond(res, paginatedResults);
+  } catch (err) {
+    console.error('Error in /product search:', err);
+    error(res, 'Search failed');
+  }
+});
+
+// GET /products/:id - Get product by ID
+router.get('/products/:id', async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const product = mockProducts.find(p => p.id === productId);
+
+    if (!product) {
+      return error(res, 'Product not found', 404);
+    }
+
+    respond(res, product);
+  } catch (err) {
+    console.error('Error in /products/:id:', err);
+    error(res, 'Could not retrieve product');
+  }
+});
+
+// GET /ingredients - Get all ingredients
+router.get('/ingredients', async (req, res) => {
+  try {
+    respond(res, mockIngredients);
+  } catch (err) {
+    console.error('Error in /ingredients:', err);
+    error(res, 'Could not retrieve ingredients');
+  }
+});
+
+// GET /ingredient?q=search - Search ingredients
+router.get('/ingredient', async (req, res) => {
+  try {
+    const { q: searchQuery, limit = 20 } = req.query;
+    const limitNum = parseInt(limit);
+
+    if (!searchQuery) {
+      return respond(res, mockIngredients.slice(0, limitNum));
+    }
+
+    // Search in ingredient names and benefits
+    const searchTerm = searchQuery.toLowerCase();
+    const filteredIngredients = mockIngredients.filter(ingredient => {
+      return (
+        ingredient.name.toLowerCase().includes(searchTerm) ||
+        ingredient.benefits.some(benefit =>
+          benefit.toLowerCase().includes(searchTerm)
+        ) ||
+        ingredient.category.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    respond(res, filteredIngredients.slice(0, limitNum));
+  } catch (err) {
+    console.error('Error in /ingredient search:', err);
+    error(res, 'Ingredient search failed');
+  }
 });
 
 module.exports = router;

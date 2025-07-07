@@ -1,4 +1,4 @@
-const API_WEBSITE = 'https://skincare-api.herokuapp.com'
+const API_WEBSITE = 'http://localhost:5000'
 
 function handleApiError(error, context = 'API request') {
   const errorMessage = `${context} failed: ${error.message}`
@@ -135,27 +135,14 @@ async function addProduct(productInfo) {
 
 async function getRecommendations(skinConcerns = [], skinType = '', maxProducts = 12) {
   try {
-    const thingsToSearchFor = []
+    // For recommendations, return all products instead of trying to match specific criteria
+    // This gives users a good overview of available products
+    console.log('Getting recommendations for:', { skinConcerns, skinType, maxProducts })
 
-    for (let concernIndex = 0; concernIndex < skinConcerns.length; concernIndex++) {
-      if (skinConcerns[concernIndex]) {
-        thingsToSearchFor.push(skinConcerns[concernIndex])
-      }
-    }
-    if (skinType) {
-      thingsToSearchFor.push(skinType)
-    }
+    const products = await getAllProducts(maxProducts, 1)
+    console.log('Recommendations API returning:', products)
 
-    thingsToSearchFor.push('serum')
-    thingsToSearchFor.push('moisturizer')
-    thingsToSearchFor.push('cleanser')
-
-    if (thingsToSearchFor.length === 0) {
-      return await getAllProducts(maxProducts, 1)
-    }
-
-    const searchText = thingsToSearchFor.join(' ')
-    return await searchProducts(searchText, maxProducts, 1)
+    return products
 
   } catch (error) {
     return handleApiError(error, 'Get recommendations')

@@ -18,8 +18,18 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('authToken')
     if (token) {
-      // TODO: Amaka dont forget to  Validate token with backend
-      setCurrentView('dashboard')
+
+      try {
+        if (token.trim().length > 0) {
+          setCurrentView('dashboard')
+        } else {
+          localStorage.removeItem('authToken')
+          setCurrentView('login')
+        }
+      } catch (error) {
+        localStorage.removeItem('authToken')
+        setCurrentView('login')
+      }
     }
   }, [])
 
