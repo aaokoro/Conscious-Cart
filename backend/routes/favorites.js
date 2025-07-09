@@ -165,7 +165,6 @@ router.post('/', auth, async (req, res) => {
       return error(res, 'Product ID is required', 400);
     }
 
-    // Initialize user favorites if not exists
     if (!userFavorites.has(userId)) {
       userFavorites.set(userId, new Set());
     }
@@ -184,7 +183,6 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// DELETE /favorites/:productId - Remove product from favorites
 router.delete('/:productId', auth, async (req, res) => {
   try {
     const { productId } = req.params;
@@ -212,7 +210,6 @@ router.delete('/:productId', auth, async (req, res) => {
   }
 });
 
-// GET /favorites - Get user's favorite products
 router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user.uid;

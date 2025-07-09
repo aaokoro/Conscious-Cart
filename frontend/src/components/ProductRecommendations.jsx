@@ -17,7 +17,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
   async function testAPIConnectivity() {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/products?limit=1`)
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://skincare-api.herokuapp.com'}/products?limit=1`)
 
       if (response.ok) {
         await response.json()
@@ -44,11 +44,12 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       } else if (Array.isArray(data)) {
         setProducts(data)
       } else {
-        setError('Received unexpected data format from API.')
+        setError('Received unexpected data format from search API.')
+        setProducts([])
         setProducts([])
       }
     } catch (err) {
-      setError(`Failed to load recommendations: ${err.message}. Please check your internet connection and try again.`)
+      setError(`Search failed: ${err.message}. Please try again.`)
       setProducts([])
     }
 

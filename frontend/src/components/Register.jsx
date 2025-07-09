@@ -36,7 +36,6 @@ function Register({ onRegister, onSwitchToLogin }) {
     setLoading(true)
 
     try {
-      // Call the actual backend API for registration
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST',
         headers: {
@@ -52,7 +51,6 @@ function Register({ onRegister, onSwitchToLogin }) {
       const data = await response.json()
 
       if (response.ok && data.token) {
-        // Store token with the key that API functions expect
         localStorage.setItem('token', data.token)
 
         const userData = {

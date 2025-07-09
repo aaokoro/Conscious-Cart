@@ -11,7 +11,6 @@ try {
   User = models.User;
   Profile = models.Profile;
 } catch (err) {
-  // Models not available - using mock data
 }
 
 const respond = (res, data, status = 200) => res.status(status).json(data);
@@ -24,7 +23,6 @@ router.get('/me', auth, async (req, res) => {
       if (!user) return error(res, 'User not found', 404);
       respond(res, user);
     } else {
-      // Mock user data when database is not connected
       respond(res, {
         uid: req.user.uid,
         email: req.user.email || 'user@example.com',
