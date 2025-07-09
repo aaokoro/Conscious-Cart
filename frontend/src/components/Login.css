@@ -1,13 +1,20 @@
-.login-container {
-  min-height: 100vh;
+.login-container,
+.auth-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
+  z-index: 1000;
 }
 
-.login-card {
+.login-card,
+.auth-card {
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -28,25 +35,29 @@
   }
 }
 
-.login-header {
+.login-header,
+.auth-header {
   text-align: center;
   margin-bottom: 30px;
 }
 
-.login-header h1 {
+.login-header h1,
+.auth-header h1 {
   color: #333;
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
 }
 
-.login-header p {
+.login-header p,
+.auth-header p {
   color: #666;
   font-size: 16px;
   margin: 0;
 }
 
-.login-form {
+.login-form,
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -115,14 +126,16 @@
   cursor: not-allowed;
 }
 
-.login-footer {
+.login-footer,
+.auth-footer {
   text-align: center;
   margin-top: 30px;
   padding-top: 20px;
   border-top: 1px solid #eee;
 }
 
-.login-footer p {
+.login-footer p,
+.auth-footer p {
   color: #666;
   font-size: 14px;
   margin: 0;

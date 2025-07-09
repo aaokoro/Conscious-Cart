@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { AUTH_CONFIG } from './config/constants.js'
 
 // Components
 import Header from './components/Header'
@@ -9,6 +10,7 @@ import Dashboard from './components/Dashboard'
 import ProductRecommendations from './components/ProductRecommendations'
 import ProductDetail from './components/ProductDetail'
 import Profile from './components/Profile'
+import Favorites from './components/Favorites'
 
 function App() {
   const [currentView, setCurrentView] = useState('login')
@@ -16,22 +18,46 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
     if (token) {
-
       try {
         if (token.trim().length > 0) {
-          setCurrentView('dashboard')
+          // Validate token with backend
+          validateToken(token)
         } else {
-          localStorage.removeItem('authToken')
+          localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
           setCurrentView('login')
         }
       } catch (error) {
-        localStorage.removeItem('authToken')
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
         setCurrentView('login')
       }
     }
   }, [])
+
+  const validateToken = async (token) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        setCurrentView('dashboard')
+      } else {
+        // Token is invalid, remove it and show login
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+        setCurrentView('login')
+      }
+    } catch (error) {
+      localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+      setCurrentView('login')
+    }
+  }
 
   const handleLogin = (userData) => {
     setUser(userData)
@@ -40,7 +66,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null)
-    localStorage.removeItem('authToken')
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
     setCurrentView('login')
   }
 
@@ -89,6 +115,16 @@ function App() {
           <Profile
             user={user}
             onBack={() => setCurrentView('dashboard')}
+          />
+        )
+      case 'favorites':
+        return (
+          <Favorites
+            onBack={() => setCurrentView('dashboard')}
+            onProductSelect={(product) => {
+              setSelectedProduct(product)
+              setCurrentView('product-detail')
+            }}
           />
         )
       default:
