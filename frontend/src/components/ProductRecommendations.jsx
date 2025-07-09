@@ -10,8 +10,22 @@ function ProductRecommendations({ onProductSelect, onBack }) {
   const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
+
+    testAPIConnectivity()
     loadRecommendations()
   }, [])
+
+  async function testAPIConnectivity() {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://skincare-api.herokuapp.com'}/products?limit=1`)
+
+      if (response.ok) {
+        await response.json()
+      }
+    } catch (error) {
+      // API connectivity test failed
+    }
+  }
 
   async function loadRecommendations() {
     setLoading(true)
@@ -23,9 +37,20 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       const maxProducts = 12
 
       const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
-      setProducts(data)
+
+      if (data && data.success === false) {
+        setError(data.error || 'Failed to load recommendations. Please try again.')
+        setProducts([])
+      } else if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        setError('Received unexpected data format from search API.')
+        setProducts([])
+        setProducts([])
+      }
     } catch (err) {
-      setError('Failed to load recommendations. Please try again.')
+      setError(`Search failed: ${err.message}. Please try again.`)
+      setProducts([])
     }
 
     setLoading(false)
@@ -43,9 +68,19 @@ function ProductRecommendations({ onProductSelect, onBack }) {
     try {
       const maxResults = 12
       const data = await SkincareAPI.searchProducts(searchQuery, maxResults)
-      setProducts(data)
+
+      if (data && data.success === false) {
+        setError(data.error || 'Search failed. Please try again.')
+        setProducts([])
+      } else if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        setError('Received unexpected data format from search API.')
+        setProducts([])
+      }
     } catch (err) {
-      setError('Search failed. Please try again.')
+      setError(`Search failed: ${err.message}. Please try again.`)
+      setProducts([])
     }
 
     setIsSearching(false)
@@ -58,9 +93,19 @@ function ProductRecommendations({ onProductSelect, onBack }) {
     try {
       const maxResults = 12
       const data = await SkincareAPI.searchProducts(productType, maxResults)
-      setProducts(data)
+
+      if (data && data.success === false) {
+        setError(data.error || 'Search failed. Please try again.')
+        setProducts([])
+      } else if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        setError('Received unexpected data format from search API.')
+        setProducts([])
+      }
     } catch (err) {
-      setError('Search failed. Please try again.')
+      setError(`Search failed: ${err.message}. Please try again.`)
+      setProducts([])
     }
 
     setIsSearching(false)

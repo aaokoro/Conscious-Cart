@@ -2,10 +2,7 @@ import React from 'react'
 import './Dashboard.css'
 
 function Dashboard({ user, onNavigate }) {
-
-  // Function to handle clicking on action cards
   function handleActionClick(actionType) {
-    // Call the navigation function passed from parent component
     onNavigate(actionType)
   }
 
@@ -78,8 +75,11 @@ function Dashboard({ user, onNavigate }) {
             <span className="action-arrow">→</span>
           </div>
 
-          {/* Favorites Card - Coming soon feature */}
-          <div className="action-card">
+          {/* Favorites Card */}
+          <div
+            className="action-card"
+            onClick={() => handleActionClick('favorites')}
+          >
             <div className="action-icon">❤️</div>
             <h3>Favorites</h3>
             <p>View your saved products</p>
