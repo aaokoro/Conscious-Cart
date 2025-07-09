@@ -1,11 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import SkincareAPI from '../services/api'
 import './ProductDetail.css'
 
 function ProductDetail({ product, onBack }) {
   const [showAllIngredients, setShowAllIngredients] = useState(false)
-  const [addedToFavorites, setAddedToFavorites] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false)
+  const [favoriteError, setFavoriteError] = useState(null)
 
-  // If no product was passed to this component, show error
+  useEffect(() => {
+    if (product && product.id) {
+      checkFavoriteStatus()
+    }
+  }, [product])
+
+  async function checkFavoriteStatus() {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return // User not logged in, skip favorite check
+
+      const response = await SkincareAPI.checkFavoriteStatus(product.id)
+      if (response && !response.error) {
+        setIsFavorite(response.isFavorite)
+      }
+    } catch (error) {
+      console.error('Error checking favorite status:', error)
+    }
+  }
+
   if (!product) {
     return (
       <div className="product-detail">
@@ -34,12 +56,37 @@ function ProductDetail({ product, onBack }) {
     return brand.charAt(0).toUpperCase() + brand.slice(1)
   }
 
-  function handleAddToFavorites() {
-    setAddedToFavorites(true)
+  async function handleAddToFavorites() {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setFavoriteError('Please log in to add favorites')
+      return
+    }
 
-    setTimeout(() => {
-      setAddedToFavorites(false)
-    }, 2000)
+    setIsLoadingFavorite(true)
+    setFavoriteError(null)
+
+    try {
+      let response
+      if (isFavorite) {
+        // Remove from favorites
+        response = await SkincareAPI.removeFromFavorites(product.id)
+      } else {
+        // Add to favorites
+        response = await SkincareAPI.addToFavorites(product.id)
+      }
+
+      if (response && !response.error) {
+        setIsFavorite(!isFavorite)
+      } else {
+        setFavoriteError(response?.error || 'Failed to update favorites')
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error)
+      setFavoriteError('Failed to update favorites. Please try again.')
+    } finally {
+      setIsLoadingFavorite(false)
+    }
   }
 
   function getKeyIngredients() {
@@ -191,12 +238,24 @@ function ProductDetail({ product, onBack }) {
 
           {/* Action buttons section */}
           <div className="action-section">
+            {favoriteError && (
+              <div className="error-message" style={{ marginBottom: '1rem', color: '#e74c3c', fontSize: '0.9rem' }}>
+                {favoriteError}
+              </div>
+            )}
+
             <button
-              className={`btn btn-primary btn-large ${addedToFavorites ? 'btn-success' : ''}`}
+              className={`btn btn-large ${isFavorite ? 'btn-success' : 'btn-primary'}`}
               onClick={handleAddToFavorites}
-              disabled={addedToFavorites}
+              disabled={isLoadingFavorite}
             >
-              {addedToFavorites ? '✓ Added to Favorites!' : '❤️ Add to Favorites'}
+              {isLoadingFavorite ? (
+                '⏳ Loading...'
+              ) : isFavorite ? (
+                '💔 Remove from Favorites'
+              ) : (
+                '❤️ Add to Favorites'
+              )}
             </button>
 
             <button className="btn btn-secondary btn-large">
