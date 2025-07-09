@@ -36,18 +36,36 @@ function Register({ onRegister, onSwitchToLogin }) {
     setLoading(true)
 
     try {
-      const userData = {
-        name: formData.name,
-        email: formData.email,
-        id: Date.now()
+      // Call the actual backend API for registration
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.token) {
+        // Store token with the key that API functions expect
+        localStorage.setItem('token', data.token)
+
+        const userData = {
+          name: formData.name,
+          email: formData.email
+        }
+
+        onRegister(userData)
+      } else {
+        setError(data.msg || 'Registration failed. Please try again.')
       }
-
-      localStorage.setItem('authToken', 'demo-token-' + Date.now())
-      localStorage.setItem('userData', JSON.stringify(userData))
-
-      onRegister(userData)
     } catch (err) {
-      setError('Registration failed. Please try again.')
+      setError('Registration failed. Please check your connection and try again.')
     }
 
     setLoading(false)

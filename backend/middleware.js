@@ -1,13 +1,26 @@
 const jwt = require('jsonwebtoken');
 
-exports.auth = (req, res, next) => {
-  const token = req.header('x-auth-token');
-  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+const respond = (res, data, status = 200) => res.status(status).json(data);
+const error = (res, msg, status = 500) => res.status(status).json({ msg });
+
+const auth = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return error(res, 'No token, authorization denied', 401);
+  }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.user = decoded;
     next();
   } catch (err) {
-    res.status(401).json({ msg: 'Token is not valid' });
+    error(res, 'Token is not valid', 401);
   }
+};
+
+module.exports = {
+  auth,
+  respond,
+  error
 };

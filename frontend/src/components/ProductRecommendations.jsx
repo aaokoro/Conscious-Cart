@@ -17,21 +17,13 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
   async function testAPIConnectivity() {
     try {
-      console.log('Testing local backend API connectivity...')
-      const response = await fetch('http://localhost:5000/products?limit=1')
-      console.log('Local API Test Response Status:', response.status)
-      console.log('Local API Test Response OK:', response.ok)
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/products?limit=1`)
 
       if (response.ok) {
-        const data = await response.json()
-        console.log('Local API Test Data:', data)
-        console.log('✅ Local backend is working!')
-      } else {
-        console.error('Local API Test Failed - Status:', response.status)
+        await response.json()
       }
     } catch (error) {
-      console.error('Local API Test Error:', error)
-      console.log(' Make sure the backend server is running on port 5000')
+      // API connectivity test failed
     }
   }
 
@@ -44,10 +36,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       const skinType = 'normal'
       const maxProducts = 12
 
-      console.log('Loading recommendations...')
       const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
-
-      console.log('API Response:', data)
 
       if (data && data.success === false) {
         setError(data.error || 'Failed to load recommendations. Please try again.')
@@ -55,12 +44,10 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       } else if (Array.isArray(data)) {
         setProducts(data)
       } else {
-        console.error('Unexpected API response format:', data)
         setError('Received unexpected data format from API.')
         setProducts([])
       }
     } catch (err) {
-      console.error('Error loading recommendations:', err)
       setError(`Failed to load recommendations: ${err.message}. Please check your internet connection and try again.`)
       setProducts([])
     }
@@ -79,10 +66,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
     try {
       const maxResults = 12
-      console.log('Searching for:', searchQuery)
       const data = await SkincareAPI.searchProducts(searchQuery, maxResults)
-
-      console.log('Search API Response:', data)
 
       if (data && data.success === false) {
         setError(data.error || 'Search failed. Please try again.')
@@ -90,12 +74,10 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       } else if (Array.isArray(data)) {
         setProducts(data)
       } else {
-        console.error('Unexpected search response format:', data)
         setError('Received unexpected data format from search API.')
         setProducts([])
       }
     } catch (err) {
-      console.error('Error during search:', err)
       setError(`Search failed: ${err.message}. Please try again.`)
       setProducts([])
     }
@@ -109,10 +91,7 @@ function ProductRecommendations({ onProductSelect, onBack }) {
 
     try {
       const maxResults = 12
-      console.log('Searching for product type:', productType)
       const data = await SkincareAPI.searchProducts(productType, maxResults)
-
-      console.log('Product type search API Response:', data)
 
       if (data && data.success === false) {
         setError(data.error || 'Search failed. Please try again.')
@@ -120,12 +99,10 @@ function ProductRecommendations({ onProductSelect, onBack }) {
       } else if (Array.isArray(data)) {
         setProducts(data)
       } else {
-        console.error('Unexpected product type search response format:', data)
         setError('Received unexpected data format from search API.')
         setProducts([])
       }
     } catch (err) {
-      console.error('Error during product type search:', err)
       setError(`Search failed: ${err.message}. Please try again.`)
       setProducts([])
     }

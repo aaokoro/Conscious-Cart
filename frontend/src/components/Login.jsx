@@ -1,13 +1,12 @@
-// Import React tools we need
 import { useState } from 'react'
 import './Login.css'
+import { AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 
 // This component shows the login form where users sign in
 function Login({ onLogin, onSwitchToRegister }) {
-  // State to store what user types in the form
   const [formData, setFormData] = useState({
-    email: '',    // User's email address
-    password: ''  // User's password
+    email: '',
+    password: ''  
   })
 
   const [error, setError] = useState('')
@@ -19,8 +18,8 @@ function Login({ onLogin, onSwitchToRegister }) {
     const inputValue = event.target.value
 
     const newFormData = {
-      email: formData.email,       
-      password: formData.password 
+      email: formData.email,
+      password: formData.password
     }
 
     newFormData[inputName] = inputValue
@@ -29,26 +28,44 @@ function Login({ onLogin, onSwitchToRegister }) {
   }
 
   async function handleSubmit(event) {
-    event.preventDefault() 
-    setError('') 
-    setIsLoading(true) 
+    event.preventDefault()
+    setError('')
+    setIsLoading(true)
 
     try {
-      if (formData.email && formData.password) {
-        const userData = {
-          id: 1,
-          name: formData.email.split('@')[0], 
-          email: formData.email
-        }
+      if (!formData.email || !formData.password) {
+        setError('Please fill in all fields')
+        setIsLoading(false)
+        return
+      }
 
-        localStorage.setItem('authToken', 'demo-token-123')
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.token) {
+        localStorage.setItem(AUTH_CONFIG.TOKEN_STORAGE_KEY, data.token)
+
+        const userData = {
+          email: formData.email,
+          name: data.user?.name || formData.email.split('@')[0]
+        }
 
         onLogin(userData)
       } else {
-        setError('Please fill in all fields')
+        setError(data.msg || ERROR_MESSAGES.INVALID_CREDENTIALS)
       }
     } catch (err) {
-      setError('Login failed. Please try again.')
+      setError('Login failed. Please check your connection and try again.')
     }
 
     setIsLoading(false)
