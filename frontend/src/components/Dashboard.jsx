@@ -2,10 +2,7 @@ import React from 'react'
 import './Dashboard.css'
 
 function Dashboard({ user, onNavigate }) {
-
-  // Function to handle clicking on action cards
   function handleActionClick(actionType) {
-    // Call the navigation function passed from parent component
     onNavigate(actionType)
   }
 

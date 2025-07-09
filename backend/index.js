@@ -4,6 +4,19 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const { SERVER_CONFIG, DATABASE_CONFIG, HTTP_STATUS } = require('./config/constants');
 
+const logger = {
+  info: (message) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[INFO] ${message}`);
+    }
+  },
+  error: (message, error) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(`[ERROR] ${message}`, error?.message || '');
+    }
+  }
+};
+
 const app = express();
 
 app.use(cors({
@@ -17,10 +30,10 @@ app.use((err, _req, res, _next) => res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
 mongoose.connect(DATABASE_CONFIG.MONGODB_URI, {
   serverSelectionTimeoutMS: DATABASE_CONFIG.DB_CONNECTION_TIMEOUT
 })
-  .then(() => console.log('MongoDB connected'))
+  .then(() => logger.info('MongoDB connected'))
   .catch(err => {
-    console.error('MongoDB connection error:', err.message);
-    console.log('Running without MongoDB - some features may be limited');
+    logger.error('MongoDB connection error:', err);
+    logger.info('Running without MongoDB - some features may be limited');
   });
 
-app.listen(SERVER_CONFIG.PORT, () => console.log(`Server running on port ${SERVER_CONFIG.PORT}`));
+app.listen(SERVER_CONFIG.PORT, () => logger.info(`Server running on port ${SERVER_CONFIG.PORT}`));

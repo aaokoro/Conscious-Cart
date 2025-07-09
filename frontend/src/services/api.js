@@ -1,6 +1,6 @@
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 
-const API_WEBSITE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_WEBSITE = import.meta.env.VITE_API_URL || 'https://skincare-api.herokuapp.com'
 
 function handleApiError() {
   return {
@@ -133,12 +133,9 @@ async function getRecommendations(_skinConcerns = [], _skinType = '', maxProduct
     // For recommendations, return all products instead of trying to match specific criteria
     // This gives users a good overview of available products
     // Note: _skinConcerns and _skinType parameters are reserved for future implementation
-    const products = await getAllProducts(maxProducts, 1)
-
-    return products
-
+    return await getAllProducts(maxProducts, 1)
   } catch (error) {
-    return handleApiError()
+    return handleApiError(error, 'Get recommendations')
   }
 }
 

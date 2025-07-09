@@ -8,7 +8,6 @@ function ProductDetail({ product, onBack }) {
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false)
   const [favoriteError, setFavoriteError] = useState(null)
 
-  // Check favorite status when component loads
   useEffect(() => {
     if (product && product.id) {
       checkFavoriteStatus()
@@ -29,7 +28,6 @@ function ProductDetail({ product, onBack }) {
     }
   }
 
-  // If no product was passed to this component, show error
   if (!product) {
     return (
       <div className="product-detail">
