@@ -109,8 +109,8 @@ class HybridRecommendationEngine {
   }
 
   applyDiversityFilter(recommendations, userHistory) {
-    const historyBrands = new Set(userHistory.map(p => p.brand));
-    const historyConcerns = new Set(userHistory.flatMap(p => p.skinConcerns || []));
+    const historyBrands = new Set(userHistory.map(product => product.brand));
+    const historyConcerns = new Set(userHistory.flatMap(product => product.skinConcerns || []));
 
     return recommendations.map(rec => {
       let diversityScore = 1.0;
@@ -157,8 +157,8 @@ class HybridRecommendationEngine {
 
   getUserHistory(userId, interactions, products) {
     return interactions
-      .filter(i => i.userId === userId)
-      .map(i => products.find(p => p.id === i.productId))
+      .filter(interaction => interaction.userId === userId)
+      .map(interaction => products.find(product => product.id === interaction.productId))
       .filter(Boolean);
   }
 
