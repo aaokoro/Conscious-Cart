@@ -1,6 +1,6 @@
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 
-const API_WEBSITE = import.meta.env.VITE_API_URL || 'https://skincare-api.herokuapp.com'
+const API_WEBSITE = import.meta.env.VITE_API_URL || import.meta.env.VITE_FALLBACK_API_URL || 'http://localhost:5000'
 
 function handleApiError() {
   return {

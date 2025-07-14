@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const fetch = require('node-fetch'); // Add explicit fetch import for Node.js compatibility
 
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
@@ -26,6 +27,7 @@ const EXTERNAL_API = {
   PRODUCTS: 'https://skincare-api.herokuapp.com/products',
   INGREDIENTS: 'https://skincare-api.herokuapp.com/ingredients'
 };
+
 
 async function fetchProductsFromAPI(limit = 20) {
   try {

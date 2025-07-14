@@ -1,11 +1,10 @@
-Project Plan doc **(https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)**
+## 📋 Project Documentation
 
-WireFrames doc:
-**(https://docs.google.com/document/d/1JOvZd_PdkN14WlO7gUfa6tTbq5l20FE4hTXqGoP44qw/edit?usp=sharing)**
+- **[Project Plan Document](https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)** - Complete project planning and development roadmap
+- **[Wireframes Document](https://docs.google.com/document/d/1JOvZd_PdkN14WlO7gUfa6tTbq5l20FE4hTXqGoP44qw/edit?usp=sharing)** - UI/UX design mockups and user flow diagrams
+- **[Demo Video](https://www.loom.com/share/e896311a9504439fb0e24b1d0c4e3fd1?sid=b310ea38-fa29-484b-93c2-700a79e19bbd)** - Live application demonstration
 
-
-Endpoints:
-**Note** put endpoints file in to read me
+## 🔗 API Endpoints
 
 # Skincare App API Endpoints
 
@@ -97,3 +96,31 @@ Endpoints:
 |-----------|----------|-------------|--------|
 | GET | /api/products/:id/retailers | Get retailer links for a product | Product Detail |
 | POST | /api/retailers/click/:id | Record when user clicks on retailer link | Product Detail |
+
+
+# 🌟 Skinfluence - AI-Powered Skincare Recommendation Platform
+
+A modern web application that provides personalized skincare product recommendations using machine learning algorithms.
+
+## 🚀 Features
+
+- **AI-Powered Recommendations**: Content-based, collaborative filtering, and hybrid recommendation engines
+- **Product Search & Discovery**: Advanced search with filtering by skin type, concerns, and ingredients
+- **User Profiles**: Personalized accounts with favorites and recommendation history
+- **Responsive Design**: Mobile-first approach with modern UI/UX
+- **Secure Authentication**: JWT-based authentication with secure password handling
+
+## 🏗️ Architecture
+
+### Backend (Node.js/Express)
+- RESTful API with Express.js
+- MongoDB with Mongoose ODM
+- JWT authentication
+- Machine learning recommendation engines
+- Rate limiting and security middleware
+
+### Frontend (React/Vite)
+- Modern React with hooks
+- Vite for fast development and building
+- Responsive CSS with mobile-first design
+- Environment-based configuration

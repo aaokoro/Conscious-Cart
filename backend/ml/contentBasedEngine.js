@@ -1,28 +1,27 @@
 const MLUtils = require('./utils');
+const ML_CONFIG = require('./config');
 
 class ContentBasedEngine {
   constructor() {
     this.productVectors = new Map();
-    this.ingredientWeights = {
-      'hyaluronic acid': 0.9, 'retinol': 0.8, 'niacinamide': 0.7,
-      'salicylic acid': 0.8, 'glycolic acid': 0.7, 'ceramides': 0.6
-    };
+    this.config = ML_CONFIG.CONTENT_BASED;
+    this.ingredientWeights = this.config.INGREDIENT_WEIGHTS;
   }
 
   createProductVector(product) {
     const features = [];
 
-    const skinTypes = ['oily', 'dry', 'combination', 'normal', 'sensitive'];
-    skinTypes.forEach(type => {
+    this.config.SKIN_TYPES.forEach(type => {
       features.push(product.skinTypes?.includes(type) ? 1 : 0);
     });
 
-    const concerns = ['acne', 'aging', 'dryness', 'sensitivity', 'hyperpigmentation', 'redness'];
-    concerns.forEach(concern => {
+    this.config.SKIN_CONCERNS.forEach(concern => {
       features.push(product.skinConcerns?.includes(concern) ? 1 : 0);
     });
 
-    const priceTier = product.price < 20 ? 0.2 : product.price < 40 ? 0.5 : product.price < 60 ? 0.7 : 1.0;
+    const priceTier = product.price < this.config.PRICE_TIERS.LOW ? 0.2 :
+                     product.price < this.config.PRICE_TIERS.MEDIUM ? 0.5 :
+                     product.price < this.config.PRICE_TIERS.HIGH ? 0.7 : 1.0;
     features.push(priceTier);
 
     features.push(product.rating / 5.0);
@@ -44,27 +43,27 @@ class ContentBasedEngine {
     const features = [];
 
     // This is User skin type preferences
-    const skinTypes = ['oily', 'dry', 'combination', 'normal', 'sensitive'];
-    skinTypes.forEach(type => {
+    this.config.SKIN_TYPES.forEach(type => {
       features.push(userProfile.skinType === type ? 1 : 0);
     });
 
     // this is User skin concerns
-    const concerns = ['acne', 'aging', 'dryness', 'sensitivity', 'hyperpigmentation', 'redness'];
-    concerns.forEach(concern => {
+    this.config.SKIN_CONCERNS.forEach(concern => {
       features.push(userProfile.skinConcerns?.includes(concern) ? 1 : 0);
     });
 
     const avgPrice = userHistory.length > 0
       ? userHistory.reduce((sum, item) => sum + item.price, 0) / userHistory.length
-      : 30; // default
-    const priceTier = avgPrice < 20 ? 0.2 : avgPrice < 40 ? 0.5 : avgPrice < 60 ? 0.7 : 1.0;
+      : this.config.DEFAULTS.AVERAGE_PRICE;
+    const priceTier = avgPrice < this.config.PRICE_TIERS.LOW ? 0.2 :
+                     avgPrice < this.config.PRICE_TIERS.MEDIUM ? 0.5 :
+                     avgPrice < this.config.PRICE_TIERS.HIGH ? 0.7 : 1.0;
     features.push(priceTier);
 
     // Average rating preference
     const avgRating = userHistory.length > 0
       ? userHistory.reduce((sum, item) => sum + item.rating, 0) / userHistory.length
-      : 4.0; // Default
+      : this.config.DEFAULTS.AVERAGE_RATING;
     features.push(avgRating / 5.0);
 
     features.push(userProfile.sustainabilityPreference ? 1 : 0);
@@ -80,7 +79,7 @@ class ContentBasedEngine {
   }
 
   // Generating content-based recommendations
-  recommend(userProfile, products, userHistory = [], limit = 10) {
+  recommend(userProfile, products, userHistory = [], limit = this.config.DEFAULTS.RECOMMENDATION_LIMIT) {
     const userVector = this.createUserVector(userProfile, userHistory);
 
     const recommendations = products.map(product => {
