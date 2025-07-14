@@ -133,7 +133,6 @@ router.post('/skincare-profile', auth, async (req, res) => {
     error(res, 'Could not save profile', 500);
   }
 });
-
 router.get('/skincare-profile', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.uid);
