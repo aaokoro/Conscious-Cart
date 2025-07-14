@@ -144,7 +144,6 @@ router.get('/skincare-profile', auth, async (req, res) => {
     if (!profile) {
       return error(res, 'Profile not found', 404);
     }
-
     respond(res, profile);
   } catch (err) {
     console.error('Get profile error:', err);
