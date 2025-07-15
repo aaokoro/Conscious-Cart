@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import SkincareAPI from '../services/api'
 import { AUTH_CONFIG } from '../config/constants.js'
+
 import './ProductDetail.css'
 
 function ProductDetail({ product, onBack }) {
@@ -18,6 +19,7 @@ function ProductDetail({ product, onBack }) {
   async function checkFavoriteStatus() {
     try {
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+      const token = localStorage.getItem('token')
       if (!token) return // User not logged in, skip favorite check
 
       const response = await SkincareAPI.checkFavoriteStatus(product.id)
@@ -59,6 +61,7 @@ function ProductDetail({ product, onBack }) {
 
   async function handleAddToFavorites() {
     const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+    const token = localStorage.getItem('token')
     if (!token) {
       setFavoriteError('Please log in to add favorites')
       return
@@ -138,6 +141,7 @@ function ProductDetail({ product, onBack }) {
     // Navigate back to recommendations to show similar products
     onBack()
   }
+
 
   return (
     <div className="product-detail">
@@ -268,6 +272,8 @@ function ProductDetail({ product, onBack }) {
               className="btn btn-secondary btn-large"
               onClick={handleFindSimilarProducts}
             >
+
+            <button className="btn btn-secondary btn-large">
               🔍 Find Similar Products
             </button>
           </div>

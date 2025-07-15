@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './Login.css'
 import { AUTH_CONFIG } from '../config/constants.js'
 
+
 function Register({ onRegister, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -38,6 +39,8 @@ function Register({ onRegister, onSwitchToLogin }) {
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,6 +56,7 @@ function Register({ onRegister, onSwitchToLogin }) {
 
       if (response.ok && data.token) {
         localStorage.setItem(AUTH_CONFIG.TOKEN_STORAGE_KEY, data.token)
+        localStorage.setItem('token', data.token)
 
         const userData = {
           name: formData.name,

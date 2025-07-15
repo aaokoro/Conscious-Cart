@@ -5,6 +5,14 @@
 - **[Demo Video](https://www.loom.com/share/e896311a9504439fb0e24b1d0c4e3fd1?sid=b310ea38-fa29-484b-93c2-700a79e19bbd)** - Live application demonstration
 
 ## 🔗 API Endpoints
+Project Plan doc **(https://docs.google.com/document/d/1QTFmvcbl0Ds0DxBxlxneavytynoTvsAw92YnZO4pCj4/edit?pli=1&tab=t.0)**
+
+WireFrames doc:
+**(https://docs.google.com/document/d/1JOvZd_PdkN14WlO7gUfa6tTbq5l20FE4hTXqGoP44qw/edit?usp=sharing)**
+
+
+Endpoints:
+**Note** put endpoints file in to read me
 
 # Skincare App API Endpoints
 
@@ -124,3 +132,4 @@ A modern web application that provides personalized skincare product recommendat
 - Vite for fast development and building
 - Responsive CSS with mobile-first design
 - Environment-based configuration
+

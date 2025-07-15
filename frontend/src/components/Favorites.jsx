@@ -3,6 +3,7 @@ import './Favorites.css'
 import { AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 import SkincareAPI from '../services/api.js'
 
+
 function Favorites({ onBack, onProductSelect }) {
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,6 +30,18 @@ function Favorites({ onBack, onProductSelect }) {
         setError(result.error || 'Failed to load favorites')
       } else {
         setFavorites(Array.isArray(result) ? result : [])
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/favorites`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setFavorites(data)
+      } else {
+        setError('Failed to load favorites')
       }
     } catch (err) {
       setError('Failed to load favorites')
@@ -46,6 +59,20 @@ function Favorites({ onBack, onProductSelect }) {
       }
     } catch (err) {
       // Handle error silently or show user notification
+      const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/favorites/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        setFavorites(favorites.filter(product => product.id !== productId))
+      }
+    } catch (err) {
+      
     }
   }
 

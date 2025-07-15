@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const fetch = require('node-fetch'); // Add explicit fetch import for Node.js compatibility
 
+
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 // Custom error logger

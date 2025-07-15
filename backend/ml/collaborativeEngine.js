@@ -1,11 +1,13 @@
 const MLUtils = require('./utils');
 const ML_CONFIG = require('./config');
 
+
 class CollaborativeEngine {
   constructor() {
     this.userItemMatrix = new Map();
     this.userSimilarities = new Map();
     this.config = ML_CONFIG.COLLABORATIVE;
+
   }
 
   buildUserItemMatrix(interactions) {
@@ -35,6 +37,16 @@ class CollaborativeEngine {
   }
 
   findSimilarUsers(targetUserId, threshold = this.config.SIMILARITY_THRESHOLD, limit = this.config.SIMILAR_USERS_LIMIT) {
+
+    if (interaction.viewed) rating += 1;
+    if (interaction.timeSpent > 30) rating += 1;
+    if (interaction.purchased) rating += 3;
+    if (interaction.favorited) rating += 2;
+    if (interaction.reviewed) rating += 1;
+    return Math.min(rating, 5);
+  }
+
+  findSimilarUsers(targetUserId, threshold = 0.3, limit = 50) {
     const targetUserRatings = this.userItemMatrix.get(targetUserId);
     if (!targetUserRatings) return [];
 
@@ -56,6 +68,7 @@ class CollaborativeEngine {
       }
 
       if (commonItems.length >= this.config.MIN_COMMON_ITEMS) {
+      if (commonItems.length >= 2) {
         const correlation = MLUtils.pearsonCorrelation(targetRatingsArray, userRatingsArray);
         if (correlation > threshold) {
           similarities.push({ userId, similarity: correlation, commonItems: commonItems.length });
@@ -69,6 +82,7 @@ class CollaborativeEngine {
   }
 
   recommend(targetUserId, products, limit = this.config.DEFAULT_LIMIT) {
+  recommend(targetUserId, products, limit = 10) {
     const similarUsers = this.findSimilarUsers(targetUserId);
     if (similarUsers.length === 0) return [];
 
