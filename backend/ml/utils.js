@@ -21,7 +21,6 @@ class MLUtils {
 
       return denominator ? numerator / denominator : 0;
     }
-
     // Normalize array to 0-1 range
     static normalize(array) {
       const min = Math.min(...array);
