@@ -112,4 +112,5 @@ class CollaborativeEngine {
       .slice(0, limit);
   }
 }
+
 module.exports = CollaborativeEngine;

@@ -8,6 +8,9 @@ function Login({ onLogin, onSwitchToRegister }) {
     email: '',
     password: ''
   })
+    password: ''  
+  })
+
   const [error, setError] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)

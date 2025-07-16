@@ -44,6 +44,7 @@ const createIndexes = (schema) => {
 };
 
 createIndexes(InteractionSchema);
+
 InteractionSchema.statics.createInteraction = function(interactionData) {
   const { user, product, type, ...otherData } = interactionData;
 

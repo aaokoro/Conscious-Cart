@@ -18,6 +18,7 @@ function Register({ onRegister, onSwitchToLogin }) {
       [name]: value
     }))
   }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')

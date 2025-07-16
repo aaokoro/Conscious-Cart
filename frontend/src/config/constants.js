@@ -19,6 +19,7 @@ export const UI_CONFIG = {
   SEARCH_DEBOUNCE_MS: parseInt(import.meta.env.VITE_SEARCH_DEBOUNCE_MS) || 300,
   NOTIFICATION_DURATION: parseInt(import.meta.env.VITE_NOTIFICATION_DURATION) || 5000,
 }
+
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: import.meta.env.VITE_NETWORK_ERROR_MSG || 'Network error. Please check your connection and try again.',
   SERVICE_UNAVAILABLE: import.meta.env.VITE_SERVICE_UNAVAILABLE_MSG || 'Service temporarily unavailable. Please try again later.',

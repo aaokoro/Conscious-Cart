@@ -120,4 +120,5 @@ class ContentBasedEngine {
     return reasons.join(' • ');
   }
 }
+
 module.exports = ContentBasedEngine;
