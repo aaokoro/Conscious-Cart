@@ -6,9 +6,8 @@ import { AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 function Login({ onLogin, onSwitchToRegister }) {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''  
+    password: ''
   })
-
   const [error, setError] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
