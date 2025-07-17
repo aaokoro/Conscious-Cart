@@ -1,6 +1,8 @@
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 
-const API_WEBSITE = import.meta.env.VITE_API_URL || import.meta.env.VITE_FALLBACK_API_URL || 'http://localhost:5000'
+const API_WEBSITE = import.meta.env.VITE_API_URL || (() => {
+  throw new Error('VITE_API_URL environment variable is required');
+})()
 
 const API_WEBSITE = import.meta.env.VITE_API_URL || 'https://skincare-api.herokuapp.com'
 
@@ -130,12 +132,44 @@ async function addProduct(productInfo) {
   }
 }
 
-async function getRecommendations(_skinConcerns = [], _skinType = '', maxProducts = API_CONFIG.RECOMMENDATIONS_LIMIT) {
+async function getRecommendations(skinConcerns = [], skinType = '', maxProducts = API_CONFIG.RECOMMENDATIONS_LIMIT) {
   try {
-    // For recommendations, return all products instead of trying to match specific criteria
-    // This gives users a good overview of available products
-    // Note: _skinConcerns and _skinType parameters are reserved for future implementation
-    return await getAllProducts(maxProducts, 1)
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+
+    // If user is authenticated, use personalized recommendations
+    if (token) {
+      const requestUrl = `${API_WEBSITE}/api/recommendations`
+
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `${AUTH_CONFIG.TOKEN_HEADER_PREFIX} ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed! Status: ${response.status}`)
+      }
+
+      return await response.json()
+    }
+    // For non-authenticated users, use content-based filtering with provided parameters
+    else {
+      const skinConcernsParam = skinConcerns.length > 0
+        ? `&skinConcerns=${encodeURIComponent(skinConcerns.join(','))}`
+        : ''
+
+      const requestUrl = `${API_WEBSITE}/api/recommendations/skin-type/${encodeURIComponent(skinType || 'normal')}?limit=${maxProducts}${skinConcernsParam}`
+
+      const response = await fetch(requestUrl)
+
+      if (!response.ok) {
+        throw new Error(`API request failed! Status: ${response.status}`)
+      }
+
+      return await response.json()
+    }
   } catch (error) {
     return handleApiError(error, 'Get recommendations')
   }

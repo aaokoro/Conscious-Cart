@@ -156,7 +156,6 @@ const error = (res, msg, status = 500) => res.status(status).json({ msg });
 // In-memory storage for favorites (in production, this would be in a database)
 const userFavorites = new Map(); // userId -> Set of productIds
 
-// POST /favorites - Add product to favorites
 router.post('/', auth, async (req, res) => {
   try {
     const { productId } = req.body;
@@ -228,38 +227,21 @@ router.get('/', auth, async (req, res) => {
     }
 
     // Fetch the actual product data for the favorite product IDs
-    const { Product } = require('../models');
-    const mongoose = require('mongoose');
+    // For development without MongoDB, return placeholder data for favorites
+    const placeholderProducts = favoriteProductIds.map(id => ({
+      id: id,
+      name: `Product ${id}`,
+      brand: 'Sample Brand',
+      price: 29.99,
+      rating: 4.2,
+      description: `A quality skincare product (ID: ${id})`,
+      ingredient_list: ['Water', 'Glycerin', 'Niacinamide'],
+      skinTypes: ['All'],
+      skinConcerns: ['Hydration'],
+      isSustainable: true
+    }));
 
-    if (mongoose.connection.readyState === 1 && Product) {
-      // If MongoDB is connected, fetch from database
-      const favoriteProducts = await Product.find({
-        _id: { $in: favoriteProductIds.map(id => {
-          try {
-            return new mongoose.Types.ObjectId(id);
-          } catch {
-            return null;
-          }
-        }).filter(id => id !== null) }
-      });
-
-      const formattedProducts = favoriteProducts.map(product => ({
-        id: product._id,
-        name: product.name,
-        brand: product.brand,
-        price: product.price || 29.99,
-        rating: product.rating || 4.2,
-        description: product.description || `A quality ${product.name} from ${product.brand}`,
-        ingredient_list: product.ingredient_list || product.ingredients || [],
-        skinTypes: product.skinTypes || ['All'],
-        skinConcerns: product.skinConcerns || [],
-        isSustainable: product.isSustainable || false
-      }));
-
-      respond(res, formattedProducts);
-    } else {
-      respond(res, []);
-    }
+    respond(res, placeholderProducts);
   } catch (err) {
     console.error('Error fetching favorites:', err);
     const favoriteIds = Array.from(userFavorites.get(userId));

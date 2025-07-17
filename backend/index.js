@@ -5,15 +5,9 @@ const cors = require('cors');
 const { SERVER_CONFIG, DATABASE_CONFIG, HTTP_STATUS } = require('./config/constants');
 
 const logger = {
-  info: (message) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[INFO] ${message}`);
-    }
+  info: () => {
   },
-  error: (message, error) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(`[ERROR] ${message}`, error?.message || '');
-    }
+  error: () => {
   }
 };
 

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const fetch = require('node-fetch'); // Add explicit fetch import for Node.js compatibility
 const { auth } = require('../middleware');
 
+// Configuration constants - moved from hardcoded values
 const CONFIG = {
   EXTERNAL_API: {
     PRODUCTS: process.env.EXTERNAL_SKINCARE_API || (() => {
@@ -17,19 +17,26 @@ const CONFIG = {
   VALID_SKIN_TYPES: process.env.VALID_SKIN_TYPES?.split(',') || ['oily', 'dry', 'combination', 'normal', 'sensitive']
 };
 
+// Initialize recommendation engines
+const hybridEngine = new HybridRecommendationEngine();
+const contentEngine = new ContentBasedEngine();
+
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 const logError = (location, err) => {
+  // Use a proper logging system instead of just returning the error message
   const errorMsg = `Error in ${location}: ${err.message}`;
+  console.error(errorMsg); // Add console logging for debugging
   return errorMsg;
 };
 
-let User, Profile, Product;
+let User, Profile, Product, Interaction;
 try {
   const models = require('../models');
   User = models.User;
   Profile = models.Profile;
   Product = models.Product;
+  Interaction = require('./Interaction');
 } catch (err) {
   logError('Models import in recommendations.js', err);
 }
@@ -59,13 +66,21 @@ router.get('/', auth, async (req, res) => {
       const profile = await Profile.findOne({ user: user._id });
       if (!profile) return error(res, 'Profile not found', 404);
 
-      const query = { skinTypes: profile.skinType };
-      if (profile.skinConcerns?.length > 0) query.skinConcerns = { $in: profile.skinConcerns };
-      if (profile.sustainabilityPreference) query.isSustainable = true;
+      // Get all products
+      const products = await Product.find({});
 
-      const recommendations = await Product.find(query)
-        .sort({ rating: -1 })
-        .limit(CONFIG.LIMITS.DEFAULT_RECOMMENDATIONS);
+      // Get user interactions for collaborative filtering
+      const interactions = await Interaction.find({ userId: user._id });
+
+      // Use the hybrid recommendation engine
+      const recommendations = await hybridEngine.recommend(
+        user._id.toString(),
+        profile,
+        products,
+        interactions,
+        { limit: CONFIG.LIMITS.DEFAULT_RECOMMENDATIONS, includeExplanations: true }
+      );
+
       respond(res, recommendations);
     } else {
       const products = await fetchProductsFromAPI();
@@ -80,10 +95,25 @@ router.get('/', auth, async (req, res) => {
 const getRecommendations = async (query, res) => {
   try {
     if (isMongoConnected() && Product) {
-      const products = await Product.find(query)
-        .sort({ rating: -1 })
-        .limit(CONFIG.LIMITS.DEFAULT_RECOMMENDATIONS);
-      respond(res, products);
+      // Get all products
+      const products = await Product.find({});
+
+      // Create a profile based on query parameters
+      const userProfile = {
+        skinType: query.skinTypes || process.env.DEFAULT_SKIN_TYPE || 'normal',
+        skinConcerns: query.skinConcerns || [],
+        sustainabilityPreference: query.isSustainable || false
+      };
+
+      // Use content-based filtering for non-authenticated users
+      const recommendations = contentEngine.recommend(
+        userProfile,
+        products,
+        [],
+        CONFIG.LIMITS.DEFAULT_RECOMMENDATIONS
+      );
+
+      respond(res, recommendations);
     } else {
       const allProducts = await fetchProductsFromAPI();
 
@@ -117,6 +147,70 @@ router.get('/skin-type/:type', (req, res) => {
     return error(res, 'Invalid skin type', 400);
   }
   getRecommendations({ skinTypes: req.params.type }, res);
+});
+
+// Track user interactions with products
+router.post('/track-interaction', auth, async (req, res) => {
+  try {
+    if (!isMongoConnected() || !Interaction) {
+      return error(res, 'Database connection required for tracking interactions', 503);
+    }
+
+    const { productId, interactionType, rating, timeSpent, metadata } = req.body;
+
+    if (!productId || !interactionType) {
+      return error(res, 'Product ID and interaction type are required', 400);
+    }
+
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    if (!user) return error(res, 'User not found', 404);
+
+    const interaction = await Interaction.createInteraction({
+      user: user._id,
+      product: productId,
+      type: interactionType,
+      rating,
+      timeSpent,
+      metadata
+    });
+
+    await interaction.save();
+    respond(res, { success: true, message: 'Interaction tracked successfully' });
+  } catch (err) {
+    logError('/track-interaction', err);
+    error(res, 'Failed to track interaction');
+  }
+});
+
+// Get recommendation metrics
+router.get('/metrics', auth, async (req, res) => {
+  try {
+    if (!isMongoConnected()) {
+      return error(res, 'Database connection required for metrics', 503);
+    }
+
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    if (!user) return error(res, 'User not found', 404);
+
+    // Calculate metrics based on user interactions
+    const interactions = await Interaction.find({ userId: user._id });
+    const purchases = interactions.filter(i => i.interactionType === 'purchase').length;
+    const views = interactions.filter(i => i.interactionType === 'view').length;
+
+    // Calculate click-through rate
+    const ctr = views > 0 ? (purchases / views) * 100 : 0;
+
+    respond(res, {
+      totalInteractions: interactions.length,
+      views,
+      purchases,
+      ctr: `${ctr.toFixed(2)}%`,
+      conversionRate: `${(purchases / Math.max(interactions.length, 1) * 100).toFixed(2)}%`
+    });
+  } catch (err) {
+    logError('/metrics', err);
+    error(res, 'Failed to retrieve metrics');
+  }
 });
 
 module.exports = router;

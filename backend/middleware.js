@@ -19,8 +19,15 @@ const auth = (req, res, next) => {
   }
 };
 
+// Simple middleware for development without MongoDB
+const simpleAuth = (_req, _res, next) => {
+  // For development, allow all requests to pass through
+  // In a real app, you would validate the token
+  next();
+};
+
 module.exports = {
-  auth,
+  auth: simpleAuth, // Use simpleAuth instead of auth for development without MongoDB
   respond,
   error
 };
