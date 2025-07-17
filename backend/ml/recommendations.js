@@ -214,8 +214,7 @@ router.get('/metrics', auth, async (req, res) => {
     const ctr = views > 0 ? (purchases / views) * 100 : 0;
 
     respond(res, {
-      totalInteractions: interactions.length,
-      views,
+git checkout refactoring-including-demo      views,
       purchases,
       ctr: `${ctr.toFixed(2)}%`,
       conversionRate: `${(purchases / Math.max(interactions.length, 1) * 100).toFixed(2)}%`
