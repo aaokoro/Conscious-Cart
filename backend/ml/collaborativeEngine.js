@@ -1,115 +1,126 @@
 const MLUtils = require('./utils');
+const mongoose = require('mongoose');
+const Interaction = require('./Interaction');
+const Product = require('../models/Product');
+const User = require('../models/User');
+const Profile = require('../models/Profile');
 
+/**
+ * Collaborative Filtering Engine
+ * Uses user-item interactions to find similar users and recommend products
+ */
 class CollaborativeEngine {
   constructor() {
-    this.userItemMatrix = new Map();
-    this.userSimilarities = new Map();
+    this.utils = new MLUtils();
   }
 
-  buildUserItemMatrix(interactions) {
-    const matrix = new Map();
-
-    interactions.forEach(interaction => {
-      if (!matrix.has(interaction.userId)) {
-        matrix.set(interaction.userId, new Map());
+  /**
+   * Get recommendations based on similar users' preferences
+   * @param {string} userId - User ID to get recommendations for
+   * @param {number} limit - Maximum number of recommendations to return
+   * @returns {Promise<Array>} - Array of recommended products with scores
+   */
+  async getRecommendations(userId, limit = 5) {
+    try {
+      // Get the user's profile
+      const userProfile = await Profile.findOne({ user: userId });
+      if (!userProfile) {
+        console.log('No user profile found for collaborative filtering');
+        return [];
       }
 
-      const rating = interaction.rating || this.calculateImplicitRating(interaction);
-      matrix.get(interaction.userId).set(interaction.productId, rating);
-    });
+      // Get all interactions
+      const interactions = await Interaction.find({}).populate('user product');
+      if (!interactions || interactions.length === 0) {
+        console.log('No interactions found for collaborative filtering');
+        return [];
+      }
 
-    this.userItemMatrix = matrix;
-    return matrix;
-  }
+      // Get all users with their interactions
+      const users = await User.find({});
+      if (!users || users.length === 0) {
+        console.log('No users found for collaborative filtering');
+        return [];
+      }
 
-  calculateImplicitRating(interaction) {
-    let rating = 0;
-    if (interaction.viewed) rating += 1;
-    if (interaction.timeSpent > 30) rating += 1;
-    if (interaction.purchased) rating += 3;
-    if (interaction.favorited) rating += 2;
-    if (interaction.reviewed) rating += 1;
-    return Math.min(rating, 5);
-  }
+      // Get user interactions
+      const userInteractions = interactions.filter(
+        interaction => interaction.user && interaction.user._id &&
+        interaction.user._id.toString() === userId.toString()
+      );
 
-  findSimilarUsers(targetUserId, threshold = 0.3, limit = 50) {
-    const targetUserRatings = this.userItemMatrix.get(targetUserId);
-    if (!targetUserRatings) return [];
+      // Get products the user has already interacted with
+      const userProductIds = userInteractions.map(
+        interaction => interaction.product && interaction.product._id &&
+        interaction.product._id.toString()
+      ).filter(id => id); // Filter out any undefined values
 
-    const similarities = [];
+      const userSimilarities = [];
+      for (const otherUser of users) {
+        if (otherUser._id.toString() === userId.toString()) continue;
 
-    for (const [userId, userRatings] of this.userItemMatrix) {
-      if (userId === targetUserId) continue;
+        const otherUserInteractions = interactions.filter(
+          interaction => interaction.user && interaction.user._id &&
+          interaction.user._id.toString() === otherUser._id.toString()
+        );
 
-      const commonItems = [];
-      const targetRatingsArray = [];
-      const userRatingsArray = [];
+        const similarity = this.utils.calculateUserSimilarity(userProfile, otherUser, userInteractions, otherUserInteractions);
+        userSimilarities.push({
+          user: otherUser,
+          similarity
+        });
+      }
 
-      for (const [itemId, rating] of targetUserRatings) {
-        if (userRatings.has(itemId)) {
-          commonItems.push(itemId);
-          targetRatingsArray.push(rating);
-          userRatingsArray.push(userRatings.get(itemId));
+      userSimilarities.sort((a, b) => b.similarity - a.similarity);
+
+      const topSimilarUsers = userSimilarities.slice(0, 3);
+
+      const candidateProducts = [];
+      for (const { user: similarUser, similarity } of topSimilarUsers) {
+        if (similarity <= 0) continue; // Skip users with no similarity
+
+        const similarUserInteractions = interactions.filter(
+          interaction => interaction.user && interaction.user._id &&
+          interaction.user._id.toString() === similarUser._id.toString() &&
+          interaction.rating > 3 // Only consider positive interactions
+        );
+
+        for (const interaction of similarUserInteractions) {
+          if (!interaction.product) continue;
+
+          const productId = interaction.product._id.toString();
+
+          if (userProductIds.includes(productId)) continue;
+
+          // Check if product is already in candidates
+          const existingProduct = candidateProducts.find(p => p.product._id.toString() === productId);
+
+          if (existingProduct) {
+            // Update score if product already exists in candidates
+            existingProduct.score += similarity * interaction.rating;
+          } else {
+            // Add new product to candidates
+            candidateProducts.push({
+              product: interaction.product,
+              score: similarity * interaction.rating
+            });
+          }
         }
       }
 
-      if (commonItems.length >= 2) {
-        const correlation = MLUtils.pearsonCorrelation(targetRatingsArray, userRatingsArray);
-        if (correlation > threshold) {
-          similarities.push({ userId, similarity: correlation, commonItems: commonItems.length });
-        }
-      }
+      candidateProducts.sort((a, b) => b.score - a.score);
+
+
+      return candidateProducts.slice(0, limit).map(item => ({
+        product: item.product,
+        score: item.score,
+        source: 'collaborative'
+      }));
+    } catch (error) {
+      console.error('Error in collaborative filtering:', error);
+      return [];
     }
-
-    return similarities
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
-  }
-
-  recommend(targetUserId, products, limit = 10) {
-    const similarUsers = this.findSimilarUsers(targetUserId);
-    if (similarUsers.length === 0) return [];
-
-    const targetUserRatings = this.userItemMatrix.get(targetUserId) || new Map();
-    const recommendations = new Map();
-
-    for (const { userId, similarity } of similarUsers) {
-
-      const userRatings = this.userItemMatrix.get(userId);
-
-      for (const [productId, rating] of userRatings) {
-        if (targetUserRatings.has(productId)) continue;
-
-        if (!recommendations.has(productId)) {
-          recommendations.set(productId, { weightedSum: 0, similaritySum: 0 });
-        }
-
-        const rec = recommendations.get(productId);
-        rec.weightedSum += rating * similarity;
-        rec.similaritySum += Math.abs(similarity);
-      }
-    }
-
-    const finalRecommendations = [];
-
-    for (const [productId, { weightedSum, similaritySum }] of recommendations) {
-      if (similaritySum > 0) {
-        const predictedRating = weightedSum / similaritySum;
-        const product = products.find(p => p.id.toString() === productId.toString());
-
-        if (product) {
-          finalRecommendations.push({
-            product,
-            score: predictedRating,
-            explanation: `Recommended by ${similarUsers.length} similar users`
-          });
-        }
-      }
-    }
-
-    return finalRecommendations
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
   }
 }
+
 module.exports = CollaborativeEngine;

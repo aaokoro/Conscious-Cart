@@ -1,6 +1,6 @@
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
 
-const API_WEBSITE = import.meta.env.VITE_API_URL || 'https://skincare-api.herokuapp.com'
+const API_WEBSITE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 function handleApiError() {
   return {
@@ -128,14 +128,34 @@ async function addProduct(productInfo) {
   }
 }
 
-async function getRecommendations(_skinConcerns = [], _skinType = '', maxProducts = API_CONFIG.RECOMMENDATIONS_LIMIT) {
+async function getRecommendations(skinConcerns = [], skinType = 'normal', maxProducts = API_CONFIG.RECOMMENDATIONS_LIMIT) {
   try {
-    // For recommendations, return all products instead of trying to match specific criteria
-    // This gives users a good overview of available products
-    // Note: _skinConcerns and _skinType parameters are reserved for future implementation
-    return await getAllProducts(maxProducts, 1)
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
+    if (!token) {
+      // If not authenticated, fall back to getting all products
+      return await getAllProducts(maxProducts, 1)
+    }
+
+    const requestUrl = `${API_WEBSITE}/api/recommendations`
+
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `${AUTH_CONFIG.TOKEN_HEADER_PREFIX} ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      // If recommendation API fails, fall back to getting all products
+      return await getAllProducts(maxProducts, 1)
+    }
+
+    const data = await response.json();
+    return data;
   } catch (error) {
-    return handleApiError(error, 'Get recommendations')
+    // Fall back to getting all products
+    return await getAllProducts(maxProducts, 1)
   }
 }
 
@@ -149,9 +169,21 @@ async function getProductsByIngredient(ingredientName, maxProducts = API_CONFIG.
 
 async function getTrendingProducts(maxProducts = API_CONFIG.TRENDING_PRODUCTS_LIMIT) {
   try {
-    const randomPageNumber = Math.floor(Math.random() * 5) + 1
+    const requestUrl = `${API_WEBSITE}/products/trending?limit=${maxProducts}`
 
-    return await getAllProducts(maxProducts, randomPageNumber)
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      // Fall back to getting all products if trending endpoint fails
+      return await getAllProducts(maxProducts, 1)
+    }
+
+    return await response.json()
   } catch (error) {
     return handleApiError(error, 'Get trending products')
   }

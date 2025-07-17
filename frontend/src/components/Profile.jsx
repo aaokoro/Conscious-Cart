@@ -1,18 +1,20 @@
 import { useState } from 'react'
+import './Profile.css'
+import { AUTH_CONFIG } from '../config/constants.js'
 
 function Profile({ user, onBack }) {
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    skinType: user?.skinType || 'Normal',
+    skinType: user?.skinType || 'normal',
     skinConcerns: user?.skinConcerns || [],
     age: user?.age || '',
     allergies: user?.allergies || ''
   })
 
-  const skinTypes = ['Normal', 'Dry', 'Oily', 'Combination', 'Sensitive']
-  const skinConcerns = ['Acne', 'Aging', 'Dark Spots', 'Dryness', 'Sensitivity', 'Wrinkles', 'Pores']
+  const skinTypes = ['normal', 'dry', 'oily', 'combination', 'sensitive']
+  const skinConcerns = ['acne', 'aging', 'hyperpigmentation', 'dryness', 'sensitivity', 'redness']
 
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({
@@ -30,17 +32,53 @@ function Profile({ user, onBack }) {
     }))
   }
 
-  const handleSave = () => {
-    // TODO: Save profile data to backend
-    setIsEditing(false)
-    console.log('Saving profile data:', profileData)
+  const handleSave = async () => {
+    try {
+      // Get the token from localStorage using the correct key
+      const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
+
+      // Prepare the data to match the backend model structure
+      const profilePayload = {
+        skinType: profileData.skinType,
+        skinConcerns: profileData.skinConcerns,
+        sustainabilityPreference: false // Default value since we don't have this in the form
+      };
+
+      // Save profile data to backend
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/skincare-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profilePayload)
+      });
+
+      if (response.ok) {
+        const updatedProfile = await response.json();
+        // Update the local state with the response from the server
+        setProfileData(updatedProfile);
+        setIsEditing(false);
+
+        // Show success message
+        alert('Profile updated successfully!');
+
+        // Refresh the page to update recommendations based on new profile
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update profile: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Failed to update profile. Please try again.');
+    }
   }
 
   const handleCancel = () => {
     setProfileData({
       name: user?.name || '',
       email: user?.email || '',
-      skinType: user?.skinType || 'Normal',
+      skinType: user?.skinType || 'normal',
       skinConcerns: user?.skinConcerns || [],
       age: user?.age || '',
       allergies: user?.allergies || ''

@@ -47,15 +47,28 @@ router.post('/register', [
 
 router.post('/login', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
+
+    // Check if email and password are provided
+    if (!email || !password) {
+      return error(res, 'Please provide email and password', HTTP_STATUS.BAD_REQUEST);
+    }
 
     if (admin) {
-      const user = await admin.auth().getUserByEmail(email);
-      const token = jwt.sign({ uid: user.uid }, AUTH_CONFIG.JWT_SECRET, { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN });
-      respond(res, { token });
+      try {
+        // In a real Firebase implementation, we would use signInWithEmailAndPassword
+        // But for this mock, we'll just get the user by email
+        const user = await admin.auth().getUserByEmail(email);
+        const token = jwt.sign({ uid: user.uid }, AUTH_CONFIG.JWT_SECRET, { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN });
+        respond(res, { token, user: { email, name: user.displayName } });
+      } catch (firebaseError) {
+        return error(res, ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.BAD_REQUEST);
+      }
     } else {
+      // For development/testing without Firebase
+      // In a real app, you would verify the password here
       const token = jwt.sign({ uid: 'mock-uid', email }, AUTH_CONFIG.JWT_SECRET, { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN });
-      respond(res, { token, user: { email } });
+      respond(res, { token, user: { email, name: 'Test User' } });
     }
   } catch (err) {
     error(res, ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.BAD_REQUEST);

@@ -72,6 +72,7 @@ function Login({ onLogin, onSwitchToRegister }) {
 
   return (
     <div className="login-container">
+      <div className="brand-element">Skinfluence</div>
       <div className="login-card">
         {/* Header section with title and description */}
         <div className="login-header">

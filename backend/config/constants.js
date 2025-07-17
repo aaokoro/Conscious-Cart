@@ -11,7 +11,7 @@ const API_CONFIG = {
 };
 
 const AUTH_CONFIG = {
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  JWT_SECRET: process.env.JWT_SECRET || 'a8d4f7e9c2b5a3d6e8f1c4a7d0e3b6a9c2d5f8e1b4a7c0d3f6e9',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   PASSWORD_MIN_LENGTH: parseInt(process.env.PASSWORD_MIN_LENGTH) || 6,
   PASSWORD_MAX_LENGTH: parseInt(process.env.PASSWORD_MAX_LENGTH) || 128,

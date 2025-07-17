@@ -56,7 +56,7 @@ async function fetchIngredientsFromAPI(limit = 20) {
 const respond = (res, data, status = 200) => res.status(status).json(data);
 const error = (res, msg, status = 500) => res.status(status).json({ msg });
 
-router.get('/api/products', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { skinType, skinConcern, isSustainable, brand, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
     const query = {};
@@ -108,64 +108,6 @@ router.get('/api/products', async (req, res) => {
   }
 });
 
-router.get('/api/products/:id', async (req, res) => {
-  try {
-    if (isMongoConnected() && Product) {
-      const product = await Product.findById(req.params.id);
-      if (!product) return error(res, 'Product not found', 404);
-      respond(res, product);
-    } else {
-      const allProducts = await fetchProductsFromAPI();
-      const product = allProducts.find(p => p.id === req.params.id);
-      if (!product) return error(res, 'Product not found', 404);
-      respond(res, product);
-    }
-  } catch (err) {
-    logError('/api/products/:id', err);
-    error(res, 'Could not retrieve product');
-  }
-});
-
-router.get('/products', async (req, res) => {
-  try {
-    const { limit = 20, page = 1 } = req.query;
-    const limitNum = parseInt(limit);
-    const pageNum = parseInt(page);
-
-    if (isMongoConnected() && Product) {
-      const skip = (pageNum - 1) * limitNum;
-      const products = await Product.find({})
-        .sort({ rating: -1 })
-        .limit(limitNum)
-        .skip(skip);
-
-      const formattedProducts = products.map(product => ({
-        id: product._id,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        rating: product.rating,
-        description: product.description,
-        ingredient_list: product.ingredients,
-        skinTypes: product.skinTypes,
-        skinConcerns: product.skinConcerns,
-        isSustainable: product.isSustainable
-      }));
-
-      respond(res, formattedProducts);
-    } else {
-      const allProducts = await fetchProductsFromAPI();
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedProducts = allProducts.slice(startIndex, endIndex);
-      respond(res, paginatedProducts);
-    }
-  } catch (err) {
-    logError('/products', err);
-    error(res, 'Could not retrieve products');
-  }
-});
-
 router.get('/product', async (req, res) => {
   try {
     const { q: searchQuery, limit = 20, page = 1 } = req.query;
@@ -185,7 +127,7 @@ router.get('/product', async (req, res) => {
           price: product.price,
           rating: product.rating,
           description: product.description,
-          ingredient_list: product.ingredients,
+          ingredient_list: product.ingredient_list,
           skinTypes: product.skinTypes,
           skinConcerns: product.skinConcerns,
           isSustainable: product.isSustainable
@@ -201,7 +143,7 @@ router.get('/product', async (req, res) => {
         $or: [
           { name: searchRegex },
           { brand: searchRegex },
-          { ingredients: { $in: [searchRegex] } },
+          { "ingredient_list": searchRegex },
           { skinConcerns: { $in: [searchTerm] } },
           { skinTypes: { $in: [searchTerm] } }
         ]
@@ -217,7 +159,7 @@ router.get('/product', async (req, res) => {
         price: product.price,
         rating: product.rating,
         description: product.description,
-        ingredient_list: product.ingredients,
+        ingredient_list: product.ingredient_list,
         skinTypes: product.skinTypes,
         skinConcerns: product.skinConcerns,
         isSustainable: product.isSustainable
@@ -256,30 +198,6 @@ router.get('/product', async (req, res) => {
   } catch (err) {
     logError('/product search', err);
     error(res, 'Search failed');
-  }
-});
-
-router.get('/products/:id', async (req, res) => {
-  try {
-    const productId = parseInt(req.params.id);
-
-    if (isMongoConnected() && Product) {
-      const product = await Product.findOne({ id: productId });
-      if (!product) return error(res, 'Product not found', 404);
-      respond(res, product);
-    } else {
-      const allProducts = await fetchProductsFromAPI();
-      const product = allProducts.find(p => p.id === productId);
-
-      if (!product) {
-        return error(res, 'Product not found', 404);
-      }
-
-      respond(res, product);
-    }
-  } catch (err) {
-    logError('/products/:id', err);
-    error(res, 'Could not retrieve product');
   }
 });
 
@@ -342,6 +260,30 @@ router.get('/ingredient', async (req, res) => {
   } catch (err) {
     logError('/ingredient search', err);
     error(res, 'Ingredient search failed');
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+    if (isMongoConnected() && Product) {
+      const product = await Product.findById(productId);
+      if (!product) return error(res, 'Product not found', 404);
+      respond(res, product);
+    } else {
+      const allProducts = await fetchProductsFromAPI();
+      const product = allProducts.find(p => p.id === productId);
+
+      if (!product) {
+        return error(res, 'Product not found', 404);
+      }
+
+      respond(res, product);
+    }
+  } catch (err) {
+    logError('/products/:id', err);
+    error(res, 'Could not retrieve product');
   }
 });
 

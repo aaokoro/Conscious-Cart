@@ -26,15 +26,15 @@ function Dashboard({ user, onNavigate }) {
         {/* Statistics section showing user progress */}
         <div className="hero-stats">
           <div className="stat-item">
-            <span className="stat-number">12</span>
+            <span className="stat-number">-</span>
             <span className="stat-label">Previously Used</span>
           </div>
           <div className="stat-item">
-            <span className="stat-number">85%</span>
+            <span className="stat-number">-</span>
             <span className="stat-label">Skin Improvement</span>
           </div>
           <div className="stat-item">
-            <span className="stat-number">30</span>
+            <span className="stat-number">-</span>
             <span className="stat-label">Days Tracked</span>
           </div>
         </div>
@@ -92,34 +92,12 @@ function Dashboard({ user, onNavigate }) {
       <div className="recent-activity">
         <h2>Recent Activity</h2>
         <div className="activity-list">
-
-          {/* Activity Item 1 */}
           <div className="activity-item">
             <div className="activity-icon">✨</div>
             <div className="activity-content">
-              <h4>New recommendation available</h4>
-              <p>Based on your recent skin analysis</p>
-              <span className="activity-time">2 hours ago</span>
-            </div>
-          </div>
-
-          {/* Activity Item 2 */}
-          <div className="activity-item">
-            <div className="activity-icon">📝</div>
-            <div className="activity-content">
-              <h4>Profile updated</h4>
-              <p>You updated your skin concerns</p>
-              <span className="activity-time">1 day ago</span>
-            </div>
-          </div>
-
-          {/* Activity Item 3 */}
-          <div className="activity-item">
-            <div className="activity-icon">🛍️</div>
-            <div className="activity-content">
-              <h4>Product added to favorites</h4>
-              <p>CeraVe Hydrating Cleanser</p>
-              <span className="activity-time">3 days ago</span>
+              <h4>Welcome to Skinfluence</h4>
+              <p>Start exploring personalized recommendations</p>
+              <span className="activity-time">Just now</span>
             </div>
           </div>
         </div>

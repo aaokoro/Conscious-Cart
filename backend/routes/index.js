@@ -9,9 +9,8 @@ const recommendationRoutes = require('./recommendations');
 
 router.use('/api/auth', authRoutes);
 router.use('/api/users', userRoutes);
-router.use('/api', userRoutes);
-router.use('/', productRoutes);
+router.use('/api/products', productRoutes);
 router.use('/favorites', favoriteRoutes);
-router.use('/api/recommendations', recommendationRoutes); 
+router.use('/api/recommendations', recommendationRoutes);
 
 module.exports = router;

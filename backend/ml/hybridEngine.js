@@ -33,38 +33,70 @@ class HybridRecommendationEngine {
   }
 
   async recommend(userId, userProfile, products, interactions = [], options = {}) {
-    const limit = options.limit || this.config.limits.default;
-    const includeExplanations = options.includeExplanations !== false;
+    try {
+      const limit = options.limit || this.config.limits.default;
+      const includeExplanations = options.includeExplanations !== false;
 
-    const userHistory = this.getUserHistory(userId, interactions, products);
-    const contentRecs = this.contentEngine.recommend(userProfile, products, userHistory, limit * this.config.limits.multiplier);
+      // Validate inputs to prevent errors
+      if (!userProfile || !products || !Array.isArray(products) || products.length === 0) {
+        return [];
+      }
 
-    this.collaborativeEngine.buildUserItemMatrix(interactions);
-    const collaborativeRecs = this.collaborativeEngine.recommend(userId, products, limit * this.config.limits.multiplier);
+      const userHistory = this.getUserHistory(userId, interactions, products);
 
-    const combinedRecs = this.combineRecommendations(contentRecs, collaborativeRecs, products);
+      let contentRecs = [];
+      try {
+        contentRecs = this.contentEngine.recommend(
+          userProfile,
+          products,
+          userHistory,
+          limit * this.config.limits.multiplier
+        );
+      } catch (error) {
+        contentRecs = [];
+      }
 
-    const diverseRecs = this.applyDiversityFilter(combinedRecs, userHistory);
+      let collaborativeRecs = [];
+      try {
+        this.collaborativeEngine.buildUserItemMatrix(interactions);
+        collaborativeRecs = this.collaborativeEngine.recommend(
+          userId,
+          products,
+          limit * this.config.limits.multiplier
+        );
+      } catch (error) {
+        collaborativeRecs = [];
+      }
 
-    const finalRecs = this.addPopularityBoost(diverseRecs, products, interactions);
+      if (contentRecs.length === 0 && collaborativeRecs.length === 0) {
+        throw new Error('Failed to generate recommendations');
+      }
 
-    return finalRecs
-      .sort((a, b) => b.finalScore - a.finalScore)
-      .slice(0, limit)
-      .map(rec => ({
-        product: rec.product,
-        score: rec.finalScore,
-        confidence: rec.confidence,
-        explanation: includeExplanations ? rec.explanation : undefined,
-        reasons: includeExplanations ? rec.reasons : undefined
-      }));
+      const combinedRecs = this.combineRecommendations(contentRecs, collaborativeRecs, products);
+      const diverseRecs = this.applyDiversityFilter(combinedRecs, userHistory);
+      const finalRecs = this.addPopularityBoost(diverseRecs, products, interactions);
+
+      return finalRecs
+        .sort((a, b) => b.finalScore - a.finalScore)
+        .slice(0, limit)
+        .map(rec => ({
+          product: rec.product,
+          score: rec.finalScore,
+          confidence: rec.confidence,
+          explanation: includeExplanations ? rec.explanation : undefined,
+          reasons: includeExplanations ? rec.reasons : undefined
+        }));
+    } catch (error) {
+      throw new Error('Failed to generate recommendations: ' + error.message);
+    }
   }
 
   combineRecommendations(contentRecs, collaborativeRecs, products) {
     const combined = new Map();
 
     contentRecs.forEach(rec => {
-      combined.set(rec.product.id, {
+      const productId = rec.product._id ? rec.product._id.toString() : rec.product.id;
+      combined.set(productId, {
         product: rec.product,
         contentScore: rec.score,
         collaborativeScore: 0,
@@ -74,11 +106,12 @@ class HybridRecommendationEngine {
     });
 
     collaborativeRecs.forEach(rec => {
-      if (combined.has(rec.product.id)) {
-        combined.get(rec.product.id).collaborativeScore = rec.score;
-        combined.get(rec.product.id).reasons.push('Similar user preferences');
+      const productId = rec.product._id ? rec.product._id.toString() : rec.product.id;
+      if (combined.has(productId)) {
+        combined.get(productId).collaborativeScore = rec.score;
+        combined.get(productId).reasons.push('Similar user preferences');
       } else {
-        combined.set(rec.product.id, {
+        combined.set(productId, {
           product: rec.product,
           contentScore: 0,
           collaborativeScore: rec.score,
@@ -137,14 +170,18 @@ class HybridRecommendationEngine {
   addPopularityBoost(recommendations, products, interactions) {
     const productPopularity = new Map();
     interactions.forEach(interaction => {
-      const current = productPopularity.get(interaction.productId) || 0;
-      productPopularity.set(interaction.productId, current + 1);
+      const interactionProductId = interaction.productId ? interaction.productId.toString() : null;
+      if (interactionProductId) {
+        const current = productPopularity.get(interactionProductId) || 0;
+        productPopularity.set(interactionProductId, current + 1);
+      }
     });
 
     const maxPopularity = Math.max(...productPopularity.values(), 1);
 
     return recommendations.map(rec => {
-      const popularity = (productPopularity.get(rec.product.id) || 0) / maxPopularity;
+      const productId = rec.product._id ? rec.product._id.toString() : rec.product.id;
+      const popularity = (productPopularity.get(productId) || 0) / maxPopularity;
       const popularityBoost = popularity * this.weights.popularity;
 
       return {
@@ -158,7 +195,14 @@ class HybridRecommendationEngine {
   getUserHistory(userId, interactions, products) {
     return interactions
       .filter(interaction => interaction.userId === userId)
-      .map(interaction => products.find(product => product.id === interaction.productId))
+      .map(interaction => {
+        // Try to match by either id or _id
+        return products.find(product => {
+          const productId = product._id ? product._id.toString() : product.id;
+          const interactionProductId = interaction.productId ? interaction.productId.toString() : null;
+          return productId === interactionProductId;
+        });
+      })
       .filter(Boolean);
   }
 

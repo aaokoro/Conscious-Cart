@@ -24,7 +24,7 @@ function ProductDetail({ product, onBack }) {
         setIsFavorite(response.isFavorite)
       }
     } catch (error) {
-      console.error('Error checking favorite status:', error)
+      // Error checking favorite status
     }
   }
 
@@ -82,7 +82,6 @@ function ProductDetail({ product, onBack }) {
         setFavoriteError(response?.error || 'Failed to update favorites')
       }
     } catch (error) {
-      console.error('Error updating favorites:', error)
       setFavoriteError('Failed to update favorites. Please try again.')
     } finally {
       setIsLoadingFavorite(false)
@@ -90,9 +89,10 @@ function ProductDetail({ product, onBack }) {
   }
 
   function getKeyIngredients() {
+    const ingredientList = product.ingredient_list || [];
     const firstFive = []
-    for (let ingredientIndex = 0; ingredientIndex < 5 && ingredientIndex < product.ingredient_list.length; ingredientIndex++) {
-      firstFive.push(product.ingredient_list[ingredientIndex])
+    for (let ingredientIndex = 0; ingredientIndex < 5 && ingredientIndex < ingredientList.length; ingredientIndex++) {
+      firstFive.push(ingredientList[ingredientIndex])
     }
     return firstFive
   }
@@ -164,11 +164,11 @@ function ProductDetail({ product, onBack }) {
           {/* Product statistics */}
           <div className="product-stats">
             <div className="stat-item">
-              <span className="stat-number">{product.ingredient_list.length}</span>
+              <span className="stat-number">{product.ingredient_list ? product.ingredient_list.length : 0}</span>
               <span className="stat-label">Ingredients</span>
             </div>
             <div className="stat-item">
-              <span className="stat-number">#{product.id}</span>
+              <span className="stat-number">#{product._id || product.id || 'N/A'}</span>
               <span className="stat-label">Product ID</span>
             </div>
           </div>
@@ -178,7 +178,7 @@ function ProductDetail({ product, onBack }) {
             <h3>About This Product</h3>
             <p>
               This {getProductCategory().toLowerCase()} from {makeBrandNameNice(product.brand)} is formulated with{' '}
-              {product.ingredient_list.length} carefully selected ingredients to provide effective skincare benefits.
+              {product.ingredient_list ? product.ingredient_list.length : 0} carefully selected ingredients to provide effective skincare benefits.
             </p>
             <p>
               Perfect for those looking for quality skincare products with transparent ingredient lists.
@@ -206,7 +206,7 @@ function ProductDetail({ product, onBack }) {
             >
               {showAllIngredients
                 ? 'Show Less'
-                : `View All ${product.ingredient_list.length} Ingredients`
+                : `View All ${product.ingredient_list ? product.ingredient_list.length : 0} Ingredients`
               }
             </button>
 
@@ -215,7 +215,7 @@ function ProductDetail({ product, onBack }) {
               <div className="all-ingredients">
                 <h4>Complete Ingredient List</h4>
                 <div className="ingredients-grid">
-                  {product.ingredient_list.map((ingredient, index) => (
+                  {(product.ingredient_list || []).map((ingredient, index) => (
                     <span key={index} className="ingredient-item">
                       {ingredient}
                     </span>
@@ -229,7 +229,7 @@ function ProductDetail({ product, onBack }) {
           <div className="product-benefits">
             <h3>Why Choose This Product</h3>
             <ul>
-              <li>Transparent ingredient list with {product.ingredient_list.length} components</li>
+              <li>Transparent ingredient list with {product.ingredient_list ? product.ingredient_list.length : 0} components</li>
               <li>Quality formulation from {makeBrandNameNice(product.brand)}</li>
               <li>Suitable for skincare enthusiasts who value ingredient transparency</li>
               <li>Part of a comprehensive skincare database</li>

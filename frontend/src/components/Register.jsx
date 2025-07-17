@@ -35,7 +35,7 @@ function Register({ onRegister, onSwitchToLogin }) {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,6 +70,7 @@ function Register({ onRegister, onSwitchToLogin }) {
 
   return (
     <div className="auth-container">
+      <div className="brand-element">Skinfluence</div>
       <div className="auth-card">
         <div className="auth-header">
           <h1>Create Account</h1>
@@ -139,7 +140,7 @@ function Register({ onRegister, onSwitchToLogin }) {
 
           <button
             type="submit"
-            className="btn btn-primary btn-full"
+            className="login-button"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Create Account'}

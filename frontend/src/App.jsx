@@ -15,6 +15,7 @@ import Favorites from './components/Favorites'
 function App() {
   const [currentView, setCurrentView] = useState('login')
   const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   useEffect(() => {
@@ -47,6 +48,31 @@ function App() {
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
+
+        // Fetch user profile data
+        try {
+          const profileResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/skincare-profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            // Merge profile data with user data
+            setUser(prevUser => ({
+              ...prevUser,
+              skinType: profileData.skinType,
+              skinConcerns: profileData.skinConcerns,
+              preferences: profileData.preferences,
+              sustainabilityPreference: profileData.sustainabilityPreference
+            }));
+          }
+        } catch (profileError) {
+          // Error fetching user profile
+        }
+
         setCurrentView('dashboard')
       } else {
         // Token is invalid, remove it and show login
@@ -96,6 +122,7 @@ function App() {
       case 'recommendations':
         return (
           <ProductRecommendations
+            user={user}
             onProductSelect={(product) => {
               setSelectedProduct(product)
               setCurrentView('product-detail')
