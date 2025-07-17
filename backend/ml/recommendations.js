@@ -2,8 +2,16 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const { auth } = require('../middleware');
+const HybridRecommendationEngine = require('./hybridEngine');
+const ContentBasedEngine = require('./contentBasedEngine');
+// CollaborativeEngine is used by HybridRecommendationEngine internally
 
-// Configuration constants - moved from hardcoded values
+let fetch;
+(async () => {
+  const nodeFetch = await import('node-fetch');
+  fetch = nodeFetch.default;
+})();
+
 const CONFIG = {
   EXTERNAL_API: {
     PRODUCTS: process.env.EXTERNAL_SKINCARE_API || (() => {
@@ -26,7 +34,12 @@ const isMongoConnected = () => mongoose.connection.readyState === 1;
 const logError = (location, err) => {
   // Use a proper logging system instead of just returning the error message
   const errorMsg = `Error in ${location}: ${err.message}`;
-  console.error(errorMsg); // Add console logging for debugging
+  // In production, this would use a proper logging service
+  if (process.env.NODE_ENV === 'development') {
+    // Only log in development, not in production
+    // eslint-disable-next-line no-console
+    console.error(errorMsg);
+  }
   return errorMsg;
 };
 
