@@ -4,10 +4,11 @@ const mongoose = require('mongoose');
 const fetch = require('node-fetch'); // Add explicit fetch import for Node.js compatibility
 const { auth } = require('../middleware');
 
-// Configuration constants - moved from hardcoded values
 const CONFIG = {
   EXTERNAL_API: {
-    PRODUCTS: process.env.EXTERNAL_SKINCARE_API || 'https://skincare-api.herokuapp.com/products'
+    PRODUCTS: process.env.EXTERNAL_SKINCARE_API || (() => {
+      throw new Error('EXTERNAL_SKINCARE_API environment variable is required');
+    })()
   },
   LIMITS: {
     DEFAULT_RECOMMENDATIONS: parseInt(process.env.DEFAULT_RECOMMENDATIONS_LIMIT) || 10,
@@ -16,14 +17,10 @@ const CONFIG = {
   VALID_SKIN_TYPES: process.env.VALID_SKIN_TYPES?.split(',') || ['oily', 'dry', 'combination', 'normal', 'sensitive']
 };
 
-const { auth } = require('../middleware');
-
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 const logError = (location, err) => {
   const errorMsg = `Error in ${location}: ${err.message}`;
-  console.error(errorMsg); // Add console logging for debugging
-
   return errorMsg;
 };
 
@@ -40,13 +37,6 @@ try {
 async function fetchProductsFromAPI(limit = CONFIG.LIMITS.EXTERNAL_API_LIMIT) {
   try {
     const response = await fetch(`${CONFIG.EXTERNAL_API.PRODUCTS}?limit=${limit}`);
-const EXTERNAL_API = {
-  PRODUCTS: 'https://skincare-api.herokuapp.com/products'
-};
-
-async function fetchProductsFromAPI(limit = 20) {
-  try {
-    const response = await fetch(`${EXTERNAL_API.PRODUCTS}?limit=${limit}`);
     if (!response.ok) {
       throw new Error(`API responded with status: ${response.status}`);
     }
@@ -56,9 +46,6 @@ async function fetchProductsFromAPI(limit = 20) {
     return [];
   }
 }
-
-
-
 
 const respond = (res, data, status = 200) => res.status(status).json(data);
 const error = (res, msg, status = 500) => res.status(status).json({ msg });
@@ -79,8 +66,6 @@ router.get('/', auth, async (req, res) => {
       const recommendations = await Product.find(query)
         .sort({ rating: -1 })
         .limit(CONFIG.LIMITS.DEFAULT_RECOMMENDATIONS);
-
-      const recommendations = await Product.find(query).sort({ rating: -1 }).limit(10);
       respond(res, recommendations);
     } else {
       const products = await fetchProductsFromAPI();
@@ -135,4 +120,3 @@ router.get('/skin-type/:type', (req, res) => {
 });
 
 module.exports = router;
-
