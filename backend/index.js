@@ -8,13 +8,12 @@ const logger = {
   info: (message) => {
     // Keep essential server startup logs
     if (message.includes('MongoDB connected') || message.includes('Server running on port')) {
-      console.log(`[INFO] ${message}`);
+      process.stdout.write(`[INFO] ${message}\n`);
     }
   },
   error: (message, error) => {
-    // Keep essential error logs
     if (message.includes('MongoDB connection error')) {
-      console.error(`[ERROR] ${message}`, error?.message || '');
+      process.stderr.write(`[ERROR] ${message} ${error?.message || ''}\n`);
     }
   }
 };
@@ -32,10 +31,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Mount the routes
 app.use(require('./routes'));
 
-// Error handling middleware
 app.use((err, _req, res, _next) => res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send({ error: err.message }));
 
 mongoose.connect(DATABASE_CONFIG.MONGODB_URI, {
