@@ -60,7 +60,7 @@ router.post('/register', [
         email: newUser.email,
         name: newUser.name
       },
-      AUTH_CONFIG.JWT_SECRET,
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN }
     );
 
@@ -74,7 +74,6 @@ router.post('/register', [
     }, HTTP_STATUS.CREATED);
 
   } catch (err) {
-    console.error('Registration error:', err);
     error(res, ERROR_MESSAGES.REGISTRATION_FAILED, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
@@ -110,7 +109,7 @@ router.post('/login', [
         email: user.email,
         name: user.name
       },
-      AUTH_CONFIG.JWT_SECRET,
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN }
     );
 
@@ -124,14 +123,8 @@ router.post('/login', [
     });
 
   } catch (err) {
-    console.error('Login error:', err);
     error(res, ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
   }
-});
-
-// Add a simple test endpoint
-router.get('/test', (_req, res) => {
-  respond(res, { message: 'Auth API is working!' });
 });
 
 module.exports = router;
