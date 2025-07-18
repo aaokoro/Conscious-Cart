@@ -32,14 +32,13 @@ const contentEngine = new ContentBasedEngine();
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 const logError = (location, err) => {
-  // Use a proper logging system instead of just returning the error message
   const errorMsg = `Error in ${location}: ${err.message}`;
-  // In production, this would use a proper logging service
+
   if (process.env.NODE_ENV === 'development') {
-    // Only log in development, not in production
-    // eslint-disable-next-line no-console
-    console.error(errorMsg);
+
+    require('../utils/logger').error(errorMsg);
   }
+
   return errorMsg;
 };
 
@@ -214,7 +213,7 @@ router.get('/metrics', auth, async (req, res) => {
     const ctr = views > 0 ? (purchases / views) * 100 : 0;
 
     respond(res, {
-git checkout refactoring-including-demo      views,
+
       purchases,
       ctr: `${ctr.toFixed(2)}%`,
       conversionRate: `${(purchases / Math.max(interactions.length, 1) * 100).toFixed(2)}%`
