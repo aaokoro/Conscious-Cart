@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware');
 
+
 const mockProducts = [
   {
     id: 1,
@@ -155,7 +156,6 @@ const error = (res, msg, status = 500) => res.status(status).json({ msg });
 // In-memory storage for favorites (in production, this would be in a database)
 const userFavorites = new Map(); // userId -> Set of productIds
 
-// POST /favorites - Add product to favorites
 router.post('/', auth, async (req, res) => {
   try {
     const { productId } = req.body;
@@ -178,6 +178,7 @@ router.post('/', auth, async (req, res) => {
       isFavorite: true
     });
   } catch (err) {
+
     console.error('Error adding to favorites:', err);
     error(res, 'Could not add to favorites');
   }
@@ -205,6 +206,7 @@ router.delete('/:productId', auth, async (req, res) => {
       isFavorite: false
     });
   } catch (err) {
+
     console.error('Error removing from favorites:', err);
     error(res, 'Could not remove from favorites');
   }
@@ -218,6 +220,30 @@ router.get('/', auth, async (req, res) => {
       return respond(res, []);
     }
 
+    const favoriteProductIds = Array.from(userFavorites.get(userId));
+
+    if (favoriteProductIds.length === 0) {
+      return respond(res, []);
+    }
+
+    // Fetch the actual product data for the favorite product IDs
+    // For development without MongoDB, return placeholder data for favorites
+    const placeholderProducts = favoriteProductIds.map(id => ({
+      id: id,
+      name: `Product ${id}`,
+      brand: 'Sample Brand',
+      price: 29.99,
+      rating: 4.2,
+      description: `A quality skincare product (ID: ${id})`,
+      ingredient_list: ['Water', 'Glycerin', 'Niacinamide'],
+      skinTypes: ['All'],
+      skinConcerns: ['Hydration'],
+      isSustainable: true
+    }));
+
+    respond(res, placeholderProducts);
+  } catch (err) {
+    console.error('Error fetching favorites:', err);
     const favoriteIds = Array.from(userFavorites.get(userId));
     const favoriteProducts = mockProducts.filter(product =>
       favoriteIds.includes(product.id.toString())
@@ -229,6 +255,7 @@ router.get('/', auth, async (req, res) => {
     error(res, 'Could not retrieve favorites');
   }
 });
+
 
 // GET /favorites/check/:productId - Check if product is favorited
 router.get('/check/:productId', auth, async (req, res) => {
@@ -244,6 +271,7 @@ router.get('/check/:productId', auth, async (req, res) => {
       isFavorite
     });
   } catch (err) {
+
     console.error('Error checking favorite status:', err);
     error(res, 'Could not check favorite status');
   }

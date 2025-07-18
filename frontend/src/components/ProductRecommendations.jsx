@@ -1,18 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import SkincareAPI from '../services/api'
 import './ProductRecommendations.css'
+import { AUTH_CONFIG } from '../config/constants'
 
-function ProductRecommendations({ onProductSelect, onBack }) {
+function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
-  useEffect(() => {
+  // Track view start time for calculating time spent on products
+  const viewStartTime = useRef({});
+  const isAuthenticated = useRef(!!localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY));
 
+  useEffect(() => {
     testAPIConnectivity()
     loadRecommendations()
+
+    // Track page view for recommendations
+    if (isAuthenticated.current) {
+      trackInteraction('view', null, { page: 'recommendations' });
+    }
   }, [])
 
   async function testAPIConnectivity() {
@@ -23,7 +32,44 @@ function ProductRecommendations({ onProductSelect, onBack }) {
         await response.json()
       }
     } catch (error) {
-      // API connectivity test failed
+    }
+  }
+
+  // Track user interactions with products
+  async function trackInteraction(interactionType, productId, metadata = {}) {
+    if (!isAuthenticated.current) return;
+
+    try {
+      const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
+      if (!token) return;
+
+      const requestUrl = `${process.env.REACT_APP_API_URL || 'https://skincare-api.herokuapp.com'}/api/recommendations/track-interaction`;
+
+      let timeSpent = 0;
+      if (interactionType === 'view' && productId && viewStartTime.current[productId]) {
+        timeSpent = Math.floor((Date.now() - viewStartTime.current[productId]) / 1000);
+        delete viewStartTime.current[productId];
+      }
+
+      await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${AUTH_CONFIG.TOKEN_HEADER_PREFIX} ${token}`
+        },
+        body: JSON.stringify({
+          productId,
+          interactionType,
+          timeSpent,
+          metadata: {
+            ...metadata,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+    } catch (error) {
+      // Silently fail - tracking errors shouldn't affect user experience
+      // In a production app, this would use a proper error logging service
     }
   }
 
@@ -32,9 +78,10 @@ function ProductRecommendations({ onProductSelect, onBack }) {
     setError('')
 
     try {
-      const skinConcerns = ['hydrating', 'gentle']
-      const skinType = 'normal'
-      const maxProducts = 12
+      // Use user profile if available, otherwise use configuration values
+      const skinConcerns = userProfile?.skinConcerns || []
+      const skinType = userProfile?.skinType || ''
+      const maxProducts = parseInt(process.env.REACT_APP_MAX_RECOMMENDATIONS) || 12
 
       const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
 
@@ -109,6 +156,22 @@ function ProductRecommendations({ onProductSelect, onBack }) {
     }
 
     setIsSearching(false)
+  }
+
+  // Start tracking time spent viewing a product
+  function startProductViewTimer(productId) {
+    viewStartTime.current[productId] = Date.now();
+  }
+
+  // Handle product selection with interaction tracking
+  function handleProductSelect(product) {
+    // Track the product view interaction
+    if (isAuthenticated.current) {
+      trackInteraction('click', product.id);
+    }
+
+    // Call the original onProductSelect function
+    onProductSelect(product);
   }
 
   function makeProductNameNice(name) {
@@ -237,9 +300,10 @@ function ProductRecommendations({ onProductSelect, onBack }) {
                 <p className="ingredient-count">
                   {product.ingredient_list.length} total ingredients
                 </p>
-                <button
+              <button
                   className="btn btn-primary"
-                  onClick={() => onProductSelect(product)}
+                  onClick={() => handleProductSelect(product)}
+                  onMouseEnter={() => startProductViewTimer(product.id)}
                 >
                   View Details
                 </button>

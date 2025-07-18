@@ -11,7 +11,9 @@ const API_CONFIG = {
 };
 
 const AUTH_CONFIG = {
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  JWT_SECRET: process.env.JWT_SECRET || (() => {
+    throw new Error('JWT_SECRET environment variable is required');
+  })(),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   PASSWORD_MIN_LENGTH: parseInt(process.env.PASSWORD_MIN_LENGTH) || 6,
   PASSWORD_MAX_LENGTH: parseInt(process.env.PASSWORD_MAX_LENGTH) || 128,
@@ -20,7 +22,9 @@ const AUTH_CONFIG = {
 };
 
 const DATABASE_CONFIG = {
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/skinfluence',
+  MONGODB_URI: process.env.MONGODB_URI || (() => {
+    throw new Error('MONGODB_URI environment variable is required');
+  })(),
   DB_CONNECTION_TIMEOUT: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 10000,
   DB_RETRY_ATTEMPTS: parseInt(process.env.DB_RETRY_ATTEMPTS) || 3,
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import './Favorites.css'
 import { AUTH_CONFIG, ERROR_MESSAGES } from '../config/constants.js'
+import SkincareAPI from '../services/api.js'
+
 
 function Favorites({ onBack, onProductSelect }) {
   const [favorites, setFavorites] = useState([])
@@ -22,6 +24,12 @@ function Favorites({ onBack, onProductSelect }) {
         return
       }
 
+      const result = await SkincareAPI.getFavorites()
+
+      if (result.success === false) {
+        setError(result.error || 'Failed to load favorites')
+      } else {
+        setFavorites(Array.isArray(result) ? result : [])
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/favorites`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -44,6 +52,13 @@ function Favorites({ onBack, onProductSelect }) {
 
   const removeFavorite = async (productId) => {
     try {
+      const result = await SkincareAPI.removeFromFavorites(productId)
+
+      if (result.success !== false) {
+        setFavorites(favorites.filter(product => product.id !== productId))
+      }
+    } catch (err) {
+      // Handle error silently or show user notification
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/favorites/${productId}`, {
         method: 'DELETE',

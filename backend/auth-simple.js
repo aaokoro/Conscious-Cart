@@ -2,11 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
-const { AUTH_CONFIG, HTTP_STATUS, ERROR_MESSAGES } = require('../config/constants');
+const bcrypt = require('bcryptjs');
+const { AUTH_CONFIG, HTTP_STATUS, ERROR_MESSAGES } = require('./config/constants');
+
+const users = [];
 
 const respond = (res, data, status = 200) => res.status(status).json(data);
 const error = (res, msg, status = 500) => res.status(status).json({ msg });
+
+async function hashPassword(password) {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
+}
+
+async function comparePassword(password, hashedPassword) {
+  return await bcrypt.compare(password, hashedPassword);
+}
 
 router.post('/register', [
   check('name').trim().isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
@@ -22,44 +33,47 @@ router.post('/register', [
     const { name, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = users.find(user => user.email === email);
     if (existingUser) {
       return error(res, 'User already exists with this email', HTTP_STATUS.CONFLICT);
     }
 
-    // Create new user
-    const user = new User({
+    // Create new user with hashed password
+    const hashedPassword = await hashPassword(password);
+    const userId = Date.now().toString();
+    const newUser = {
+      _id: userId,
       name,
       email,
-      password
-    });
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await user.save();
+    // Add to in-memory storage
+    users.push(newUser);
 
     // Create JWT token
     const token = jwt.sign(
       {
-        uid: user._id,
-        email: user.email,
-        name: user.name
+        uid: newUser._id,
+        email: newUser.email,
+        name: newUser.name
       },
-      AUTH_CONFIG.JWT_SECRET,
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN }
     );
 
     respond(res, {
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email
       }
     }, HTTP_STATUS.CREATED);
 
   } catch (err) {
-    if (err.code === 11000) {
-      return error(res, 'User already exists with this email', HTTP_STATUS.CONFLICT);
-    }
     error(res, ERROR_MESSAGES.REGISTRATION_FAILED, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
@@ -77,13 +91,13 @@ router.post('/login', [
     const { email, password } = req.body;
 
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = users.find(user => user.email === email);
     if (!user) {
       return error(res, ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
     }
 
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return error(res, ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
     }
@@ -95,7 +109,7 @@ router.post('/login', [
         email: user.email,
         name: user.name
       },
-      AUTH_CONFIG.JWT_SECRET,
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN }
     );
 

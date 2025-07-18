@@ -1,15 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const fetch = require('node-fetch');
+const { EXTERNAL_API_CONFIG } = require('../config/constants');
 
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
-// Custom error logger
+
 const logError = (location, err) => {
-  // Replace console.error with a proper error logging mechanism
-  // This could be integrated with a logging service in production
   const errorMsg = `Error in ${location}: ${err.message}`;
-  // Log to a file, send to monitoring service, etc.
   return errorMsg;
 };
 
@@ -22,34 +21,112 @@ try {
   logError('Models import', err);
 }
 
-const EXTERNAL_API = {
-  PRODUCTS: 'https://skincare-api.herokuapp.com/products',
-  INGREDIENTS: 'https://skincare-api.herokuapp.com/ingredients'
-};
+
 
 async function fetchProductsFromAPI(limit = 20) {
+  // Try primary API (skincare-api)
   try {
-    const response = await fetch(`${EXTERNAL_API.PRODUCTS}?limit=${limit}`);
+    const response = await fetch(`${EXTERNAL_API_CONFIG.SKINCARE_API_PRODUCTS}?limit=${limit}`);
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      throw new Error(`Primary API responded with status: ${response.status}`);
     }
-    return await response.json();
-  } catch (err) {
-    logError('fetchProductsFromAPI', err);
-    return [];
+
+    const products = await response.json();
+
+    return products.map(product => ({
+      id: product.id.toString(),
+      name: product.name || 'Unknown Product',
+      brand: product.brand || 'Unknown Brand',
+      price: '0.0',
+      rating: 4.0,
+      description: 'A skincare product with carefully selected ingredients',
+      ingredient_list: product.ingredient_list || [],
+      skinTypes: ['All'],
+      skinConcerns: ['General'],
+      isSustainable: false,
+      image_link: `https://via.placeholder.com/150?text=${encodeURIComponent(product.name)}`
+    }));
+  } catch (primaryErr) {
+    // If primary API fails, try backup API (makeup-api)
+    try {
+      const backupResponse = await fetch(`${EXTERNAL_API_CONFIG.MAKEUP_API_PRODUCTS}?product_type=${EXTERNAL_API_CONFIG.MAKEUP_API_PRODUCT_TYPE}`);
+      if (!backupResponse.ok) {
+        throw new Error(`Backup API responded with status: ${backupResponse.status}`);
+      }
+
+      const backupProducts = await backupResponse.json();
+
+      // Transform makeup API format to our application format
+      return backupProducts.slice(0, limit).map(product => ({
+        id: product.id.toString(),
+        name: product.name || 'Unknown Product',
+        brand: product.brand || 'Unknown Brand',
+        price: product.price || '0.0',
+        rating: product.rating || 4.0,
+        description: product.description || 'No description available',
+        ingredient_list: product.tag_list || ['Water', 'Glycerin'],
+        skinTypes: ['All'],
+        skinConcerns: ['General'],
+        isSustainable: false,
+        image_link: product.image_link || `https://via.placeholder.com/150?text=${encodeURIComponent(product.name)}`
+      }));
+    } catch (backupErr) {
+      // If both APIs fail, return empty array
+      logError('fetchProductsFromAPI', `Primary API error: ${primaryErr.message}, Backup API error: ${backupErr.message}`);
+      return [];
+    }
   }
 }
 
 async function fetchIngredientsFromAPI(limit = 20) {
   try {
-    const response = await fetch(`${EXTERNAL_API.INGREDIENTS}?limit=${limit}`);
+    const response = await fetch(`${EXTERNAL_API_CONFIG.SKINCARE_API_INGREDIENTS}?limit=${limit}`);
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      throw new Error(`Primary API responded with status: ${response.status}`);
     }
-    return await response.json();
-  } catch (err) {
-    logError('fetchIngredientsFromAPI', err);
-    return [];
+
+    const ingredients = await response.json();
+
+    return ingredients.map(item => ({
+      id: item.id.toString(),
+      name: item.ingredient,
+      benefits: [],
+      category: 'skincare'
+    }));
+  } catch (primaryErr) {
+    try {
+      const backupResponse = await fetch(`${EXTERNAL_API_CONFIG.MAKEUP_API_PRODUCTS}?product_type=${EXTERNAL_API_CONFIG.MAKEUP_API_PRODUCT_TYPE}`);
+      if (!backupResponse.ok) {
+        throw new Error(`Backup API responded with status: ${backupResponse.status}`);
+      }
+
+      const products = await backupResponse.json();
+
+      const uniqueIngredients = new Set();
+      const ingredientsList = [];
+
+      products.forEach(product => {
+        if (product.tag_list && Array.isArray(product.tag_list)) {
+          product.tag_list.forEach(tag => {
+            if (!uniqueIngredients.has(tag)) {
+              uniqueIngredients.add(tag);
+              ingredientsList.push({
+                id: ingredientsList.length + 1,
+                name: tag,
+                benefits: [],
+                category: 'makeup'
+              });
+            }
+          });
+        }
+      });
+
+      return ingredientsList.slice(0, limit);
+    } catch (backupErr) {
+      
+      logError('fetchIngredientsFromAPI', `Primary API error: ${primaryErr.message}, Backup API error: ${backupErr.message}`);
+      return [];
+    }
   }
 }
 
