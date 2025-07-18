@@ -68,8 +68,7 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
         })
       });
     } catch (error) {
-      // Silently fail - tracking errors shouldn't affect user experience
-      // In a production app, this would use a proper error logging service
+
     }
   }
 
