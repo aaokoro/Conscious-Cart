@@ -131,7 +131,7 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
         })
       });
     } catch (error) {
-      // Silently fail - tracking errors shouldn't affect user experience
+
     }
   }
 

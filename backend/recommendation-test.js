@@ -22,16 +22,8 @@ const collaborativeEngine = new CollaborativeEngine();
 // Setup logger
 const logger = {
   info: (message) => {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.log(message);
-    }
   },
   error: (message) => {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error(message);
-    }
   }
 };
 

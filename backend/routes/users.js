@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware');
-const { User, Profile } = require('../models');
-
 const mongoose = require('mongoose');
-const { auth } = require('../middleware');
 
 const isMongoConnected = () => mongoose.connection.readyState === 1;
 
@@ -14,6 +11,7 @@ try {
   User = models.User;
   Profile = models.Profile;
 } catch (err) {
+  // Error loading models
 }
 
 const respond = (res, data, status = 200) => res.status(status).json(data);
@@ -21,21 +19,6 @@ const error = (res, msg, status = 500) => res.status(status).json({ msg });
 
 router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.uid).select('-password -__v');
-    if (!user) {
-      return error(res, 'User not found', 404);
-    }
-
-    respond(res, {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
-    });
-  } catch (err) {
-    console.error('Get user error:', err);
-    error(res, 'Server error', 500);
     if (isMongoConnected() && User) {
       const user = await User.findOne({ firebaseUid: req.user.uid }).select('-__v');
       if (!user) return error(res, 'User not found', 404);
@@ -48,7 +31,7 @@ router.get('/me', auth, async (req, res) => {
       });
     }
   } catch (err) {
-    error(res, 'Server error');
+    error(res, 'Server error', 500);
   }
 });
 
@@ -76,27 +59,7 @@ router.put('/me', auth, async (req, res) => {
       updatedAt: user.updatedAt
     });
   } catch (err) {
-    console.error('Update user error:', err);
     error(res, 'Update failed', 500);
-    if (isMongoConnected() && User) {
-      let user = await User.findOne({ firebaseUid: req.user.uid });
-      if (!user) return error(res, 'User not found', 404);
-
-      if (req.body.name) user.name = req.body.name;
-      user.updatedAt = Date.now();
-      await user.save();
-
-      respond(res, user);
-    } else {
-      respond(res, {
-        uid: req.user.uid,
-        email: req.user.email || 'user@example.com',
-        name: req.body.name || req.user.name || 'Test User',
-        updatedAt: new Date()
-      });
-    }
-  } catch (err) {
-    error(res, 'Update failed');
   }
 });
 
@@ -115,14 +78,7 @@ router.delete('/me', auth, async (req, res) => {
 
     respond(res, { msg: 'User deleted successfully' });
   } catch (err) {
-    console.error('Delete user error:', err);
     error(res, 'Delete failed', 500);
-    if (isMongoConnected() && User) {
-      await User.findOneAndRemove({ firebaseUid: req.user.uid });
-    }
-    respond(res, { msg: 'User deleted' });
-  } catch (err) {
-    error(res, 'Delete failed');
   }
 });
 
@@ -180,64 +136,7 @@ router.post('/skincare-profile', auth, async (req, res) => {
     await profile.save();
     respond(res, profile);
   } catch (err) {
-    console.error('Save profile error:', err);
     error(res, 'Could not save profile', 500);
-  }
-});
-router.get('/skincare-profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.uid);
-    if (!user) {
-      return error(res, 'User not found', 404);
-    }
-
-    const profile = await Profile.findOne({ user: user._id });
-    if (!profile) {
-      return error(res, 'Profile not found', 404);
-    }
-    respond(res, profile);
-  } catch (err) {
-    console.error('Get profile error:', err);
-    error(res, 'Could not retrieve profile', 500);
-    if (isMongoConnected() && User && Profile) {
-      const user = await User.findOne({ firebaseUid: req.user.uid });
-      if (!user) return error(res, 'User not found', 404);
-
-      const { skinType, skinConcerns, preferences, sustainabilityPreference } = req.body;
-      let profile = await Profile.findOne({ user: user._id });
-
-      const profileData = {
-        skinType,
-        skinConcerns: skinConcerns || [],
-        preferences: preferences || [],
-        sustainabilityPreference: sustainabilityPreference || false,
-        updatedAt: Date.now()
-      };
-
-      if (profile) {
-        Object.assign(profile, profileData);
-      } else {
-        profile = new Profile({
-          user: user._id,
-          ...profileData
-        });
-      }
-
-      await profile.save();
-      respond(res, profile);
-    } else {
-      const { skinType, skinConcerns, preferences, sustainabilityPreference } = req.body;
-      respond(res, {
-        uid: req.user.uid,
-        skinType,
-        skinConcerns: skinConcerns || [],
-        preferences: preferences || [],
-        sustainabilityPreference: sustainabilityPreference || false,
-        updatedAt: new Date()
-      });
-    }
-  } catch (err) {
-    error(res, 'Could not save profile');
   }
 });
 
