@@ -13,15 +13,6 @@ class ProductFilterService {
     };
   }
 
-  /**
-   * Filter and sort products based on criteria
-   * @param {Array} products
-   * @param {Object} filters
-   * @param {Object} sort
-   * @param {Number} page
-   * @param {Number} limit
-   * @returns {Object}
-   */
   async filterAndSort(products, filters = {}, sort = {}, page = this.config.defaultPage, limit = this.config.defaultLimit) {
     const normalizedFilters = this.normalizeFilters(filters);
     const normalizedSort = this.normalizeSort(sort);
@@ -70,14 +61,10 @@ class ProductFilterService {
     return result;
   }
 
-  /**
-   * Normalize filter parameters
-   * @param {Object} filters
-   * @returns {Object}
-   */
   normalizeFilters(filters = {}) {
     const normalized = {};
 
+    // Original filters
     if (filters.skinType) {
       normalized.skinTypes = filters.skinType;
     }
@@ -90,10 +77,24 @@ class ProductFilterService {
       normalized.isSustainable = true;
     }
 
+    if (filters.isVegan === 'true' || filters.isVegan === true) {
+      normalized.isVegan = true;
+    }
+
+    // Makeup API specific filters
+    if (filters.product_type) {
+      normalized.product_type = filters.product_type;
+    }
+
+    if (filters.product_category) {
+      normalized.product_category = filters.product_category;
+    }
+
     if (filters.brand) {
       normalized.brand = filters.brand;
     }
 
+    // Price range filters
     if (filters.minPrice || filters.maxPrice) {
       normalized.price = {};
       if (filters.minPrice) {
@@ -104,22 +105,28 @@ class ProductFilterService {
       }
     }
 
-    if (filters.minRating) {
-      normalized.rating = { $gte: parseFloat(filters.minRating) };
+    // Rating range filters
+    if (filters.minRating || filters.maxRating) {
+      normalized.rating = {};
+      if (filters.minRating) {
+        normalized.rating.$gte = parseFloat(filters.minRating);
+      }
+      if (filters.maxRating) {
+        normalized.rating.$lte = parseFloat(filters.maxRating);
+      }
     }
 
-    if (filters.isVegan === 'true' || filters.isVegan === true) {
-      normalized.isVegan = true;
+    // Product tags filter
+    if (filters.selectedTags && Array.isArray(filters.selectedTags) && filters.selectedTags.length > 0) {
+      normalized.product_tags = filters.selectedTags;
+    } else if (filters.selectedTags && typeof filters.selectedTags === 'string') {
+      // Handle case where tags come as a comma-separated string
+      normalized.product_tags = filters.selectedTags.split(',').map(tag => tag.trim());
     }
 
     return normalized;
   }
 
-  /**
-   *  sort parameters
-   * @param {Object|String} sort
-   * @returns {Object}
-   */
   normalizeSort(sort = {}) {
     const defaultSort = { rating: -1 };
 
@@ -138,14 +145,17 @@ class ProductFilterService {
     return defaultSort;
   }
 
-  /**
-   * Apply filters to products
-   * @param {Array} products
-   * @param {Object} filters
-   * @returns {Array}
-   */
   applyFilters(products, filters) {
+    if (!products.length || !Object.keys(filters).length) {
+      return products;
+    }
+
+    // Apply filters to products from makeup API
+
     return products.filter(product => {
+      // Only apply filters that aren't already handled by the makeup API
+
+      // Skin type and concern filters
       if (filters.skinTypes && !product.skinTypes?.includes(filters.skinTypes)) {
         return false;
       }
@@ -154,6 +164,7 @@ class ProductFilterService {
         return false;
       }
 
+      // Sustainable and vegan filters
       if (filters.isSustainable && !product.isSustainable) {
         return false;
       }
@@ -162,33 +173,26 @@ class ProductFilterService {
         return false;
       }
 
-      if (filters.brand && product.brand !== filters.brand) {
-        return false;
-      }
-
-      if (filters.price) {
-        if (filters.price.$gte !== undefined && product.price < filters.price.$gte) {
+      // Product tags filter
+      if (filters.product_tags && filters.product_tags.length > 0) {
+        if (!product.product_tags || !Array.isArray(product.product_tags)) {
           return false;
         }
-        if (filters.price.$lte !== undefined && product.price > filters.price.$lte) {
+
+        const productTagsLower = product.product_tags.map(tag => tag.toLowerCase());
+        const hasAllTags = filters.product_tags.every(tag =>
+          productTagsLower.includes(tag.toLowerCase())
+        );
+
+        if (!hasAllTags) {
           return false;
         }
-      }
-
-      if (filters.rating && filters.rating.$gte !== undefined && product.rating < filters.rating.$gte) {
-        return false;
       }
 
       return true;
     });
   }
 
-  /**
-   * Apply sorting to products
-   * @param {Array} products
-   * @param {Object} sort
-   * @returns {Array}
-   */
   applySort(products, sort) {
     const sortEntries = Object.entries(sort);
     if (sortEntries.length === 0) {
@@ -208,13 +212,6 @@ class ProductFilterService {
     });
   }
 
-  /**
-   * Apply pagination to results
-   * @param {Array} products
-   * @param {Number} page
-   * @param {Number} limit
-   * @returns {Object}
-   */
   paginateResults(products, page, limit) {
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
@@ -231,10 +228,6 @@ class ProductFilterService {
     };
   }
 
-  /**
-   *
-   * @param {Object} filters - Filter criteria to invalidate
-   */
   invalidateCache(filters = {}) {
     if (!this.config.enableCache) {
       return;
@@ -252,10 +245,6 @@ class ProductFilterService {
     this.cache.invalidateByFilter(key => key.includes(partialKey));
   }
 
-  /**
-   *  cache statistics
-   * @returns {Object}
-   */
   getCacheStats() {
     return this.cache.getStats();
   }
