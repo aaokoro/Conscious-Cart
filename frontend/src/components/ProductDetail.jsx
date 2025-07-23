@@ -19,7 +19,6 @@ function ProductDetail({ product, onBack }) {
   async function checkFavoriteStatus() {
     try {
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
-      const token = localStorage.getItem('token')
       if (!token) return // User not logged in, skip favorite check
 
       const response = await SkincareAPI.checkFavoriteStatus(product.id)
@@ -27,7 +26,7 @@ function ProductDetail({ product, onBack }) {
         setIsFavorite(response.isFavorite)
       }
     } catch (error) {
-      console.error('Error checking favorite status:', error)
+      // Error checking favorite status
     }
   }
 
@@ -61,7 +60,6 @@ function ProductDetail({ product, onBack }) {
 
   async function handleAddToFavorites() {
     const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY)
-    const token = localStorage.getItem('token')
     if (!token) {
       setFavoriteError('Please log in to add favorites')
       return
@@ -86,7 +84,7 @@ function ProductDetail({ product, onBack }) {
         setFavoriteError(response?.error || 'Failed to update favorites')
       }
     } catch (error) {
-      console.error('Error updating favorites:', error)
+      // Error updating favorites
       setFavoriteError('Failed to update favorites. Please try again.')
     } finally {
       setIsLoadingFavorite(false)
@@ -174,75 +172,90 @@ function ProductDetail({ product, onBack }) {
           {/* Product statistics */}
           <div className="product-stats">
             <div className="stat-item">
-              <span className="stat-number">{product.ingredient_list.length}</span>
-              <span className="stat-label">Ingredients</span>
-            </div>
-            <div className="stat-item">
               <span className="stat-number">#{product.id}</span>
               <span className="stat-label">Product ID</span>
             </div>
+            {product.product_tags && product.product_tags.length > 0 && (
+              <div className="stat-item">
+                <span className="stat-number">{product.product_tags.length}</span>
+                <span className="stat-label">Tags</span>
+              </div>
+            )}
+            {product.product_colors && product.product_colors.length > 0 && (
+              <div className="stat-item">
+                <span className="stat-number">{product.product_colors.length}</span>
+                <span className="stat-label">Colors</span>
+              </div>
+            )}
           </div>
 
           {/* Product description */}
           <div className="product-description">
             <h3>About This Product</h3>
             <p>
-              This {getProductCategory().toLowerCase()} from {makeBrandNameNice(product.brand)} is formulated with{' '}
-              {product.ingredient_list.length} carefully selected ingredients to provide effective skincare benefits.
+              This {getProductCategory().toLowerCase()} from {makeBrandNameNice(product.brand)} is a high-quality beauty product
+              {product.product_type ? ` in the ${product.product_type} category` : ''}.
             </p>
             <p>
-              Perfect for those looking for quality skincare products with transparent ingredient lists.
-              Each ingredient has been chosen for its specific skincare properties and benefits.
+              {product.description || 'This product is designed to enhance your beauty routine with quality formulation and effective results.'}
             </p>
           </div>
 
-          {/* Ingredients section */}
-          <div className="product-ingredients">
-            <h3>Key Ingredients</h3>
+          {/* No ingredients section as requested */}
 
-            {/* Show first 5 ingredients as tags */}
-            <div className="ingredients-list">
-              {getKeyIngredients().map((ingredient, index) => (
-                <span key={index} className="ingredient-tag">
-                  {ingredient}
-                </span>
-              ))}
-            </div>
-
-            {/* Button to show/hide all ingredients */}
-            <button
-              className="btn btn-secondary ingredients-toggle"
-              onClick={toggleShowAllIngredients}
-            >
-              {showAllIngredients
-                ? 'Show Less'
-                : `View All ${product.ingredient_list.length} Ingredients`
-              }
-            </button>
-
-            {/* Show all ingredients if user clicked the button */}
-            {showAllIngredients && (
-              <div className="all-ingredients">
-                <h4>Complete Ingredient List</h4>
-                <div className="ingredients-grid">
-                  {product.ingredient_list.map((ingredient, index) => (
-                    <span key={index} className="ingredient-item">
-                      {ingredient}
-                    </span>
-                  ))}
-                </div>
+          {/* Product Tags section - Display tags from makeup API */}
+          <div className="product-tags">
+            <h3>Product Tags</h3>
+            {product.product_tags && product.product_tags.length > 0 ? (
+              <div className="tags-list">
+                {product.product_tags.map((tag, index) => (
+                  <span key={index} className="product-tag">
+                    {tag}
+                  </span>
+                ))}
               </div>
+            ) : (
+              <p>No tags available for this product</p>
             )}
           </div>
+
+          {/* Product Colors section - Display colors from makeup API */}
+          {product.product_colors && product.product_colors.length > 0 && (
+            <div className="product-colors">
+              <h3>Available Colors</h3>
+              <div className="color-swatches">
+                {product.product_colors.map((color, index) => (
+                  <div
+                    key={index}
+                    className="color-swatch"
+                    style={{
+                      backgroundColor: color.hex_value,
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '50%',
+                      display: 'inline-block',
+                      margin: '0 5px 5px 0',
+                      border: '1px solid #ddd'
+                    }}
+                    title={color.colour_name || color.hex_value}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Product benefits section */}
           <div className="product-benefits">
             <h3>Why Choose This Product</h3>
             <ul>
-              <li>Transparent ingredient list with {product.ingredient_list.length} components</li>
-              <li>Quality formulation from {makeBrandNameNice(product.brand)}</li>
-              <li>Suitable for skincare enthusiasts who value ingredient transparency</li>
-              <li>Part of a comprehensive skincare database</li>
+              {product.product_tags && product.product_tags.length > 0 && (
+                <li>Features {product.product_tags.length} product tags including {product.product_tags.slice(0, 2).join(', ')}</li>
+              )}
+              <li>Quality {product.product_type || 'beauty'} product from {makeBrandNameNice(product.brand)}</li>
+              {product.product_colors && product.product_colors.length > 0 && (
+                <li>Available in {product.product_colors.length} different colors/shades</li>
+              )}
+              <li>Part of a comprehensive beauty product database</li>
             </ul>
           </div>
 
@@ -272,8 +285,6 @@ function ProductDetail({ product, onBack }) {
               className="btn btn-secondary btn-large"
               onClick={handleFindSimilarProducts}
             >
-
-            <button className="btn btn-secondary btn-large">
               🔍 Find Similar Products
             </button>
           </div>

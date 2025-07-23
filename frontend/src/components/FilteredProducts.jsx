@@ -11,17 +11,32 @@ function FilteredProducts({ onProductSelect, onBack }) {
   const [showCacheStats, setShowCacheStats] = useState(false);
   const [queryTime, setQueryTime] = useState(null);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [evictionPolicies, setEvictionPolicies] = useState([]);
+  const [currentPolicy, setCurrentPolicy] = useState('');
+  const [policyDescriptions, setPolicyDescriptions] = useState({});
+  const [customWeights, setCustomWeights] = useState({
+    recency: 0.6,
+    frequency: 0.3,
+    age: 0.1
+  });
 
   const [filters, setFilters] = useState({
     skinType: '',
     skinConcern: '',
-    isSustainable: false,
-    isVegan: false,
+    product_type: '',
+    product_category: '',
     brand: '',
     minPrice: '',
     maxPrice: '',
-    minRating: ''
+    minRating: '',
+    maxRating: '',
+    selectedTags: []
   });
+
+  // State for dynamic data
+  const [productTypes, setProductTypes] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
 
   const [sortField, setSortField] = useState('rating');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -32,7 +47,40 @@ function FilteredProducts({ onProductSelect, onBack }) {
 
   useEffect(() => {
     loadFilteredProducts();
+    fetchProductMetadata();
+    fetchEvictionPolicies();
   }, [page, limit]);
+
+  // Fetch product types, brands, and tags from the API
+  async function fetchProductMetadata() {
+    try {
+      // Fetch product types
+      const typesResponse = await fetch('/api/products/types');
+      if (typesResponse.ok) {
+        const types = await typesResponse.json();
+        setProductTypes(types);
+      }
+
+      // Fetch brands
+      const brandsResponse = await fetch('/api/products/brands');
+      if (brandsResponse.ok) {
+        const brandsData = await brandsResponse.json();
+        setBrands(brandsData);
+      }
+
+      // Fetch tags
+      const tagsResponse = await fetch('/api/products/tags');
+      if (tagsResponse.ok) {
+        const tagsData = await tagsResponse.json();
+        setAvailableTags(tagsData);
+      }
+    } catch (err) {
+      // Set default values if API fails
+      setProductTypes(['foundation', 'blush', 'bronzer', 'lipstick', 'mascara', 'eyeshadow', 'eyeliner']);
+      setBrands([]);
+      setAvailableTags([]);
+    }
+  }
 
   async function loadFilteredProducts() {
     setLoading(true);
@@ -43,18 +91,41 @@ function FilteredProducts({ onProductSelect, onBack }) {
     try {
       const queryParams = new URLSearchParams();
 
+      // Handle special case for selectedTags
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        queryParams.append('selectedTags', filters.selectedTags.join(','));
+      }
+
+      // Add all other filters
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== '' && value !== false) {
-          queryParams.append(key, value);
+        if (key !== 'selectedTags' && value !== '' && value !== false && value !== null && value !== undefined) {
+          // Convert filter names to match makeup API parameters
+          let apiKey = key;
+
+          // Map our filter names to makeup API parameter names
+          if (key === 'minPrice') apiKey = 'price_greater_than';
+          if (key === 'maxPrice') apiKey = 'price_less_than';
+          if (key === 'minRating') apiKey = 'rating_greater_than';
+          if (key === 'maxRating') apiKey = 'rating_less_than';
+
+          queryParams.append(apiKey, value);
         }
       });
 
-      // Add sort
-      queryParams.append('sort', `${sortField}:${sortDirection}`);
+      // Add sort parameters
+      // Map our sort fields to makeup API sort parameters
+      let apiSortField = sortField;
+      if (sortField === 'name') apiSortField = 'product_name';
+      if (sortField === 'price') apiSortField = 'price';
+      if (sortField === 'rating') apiSortField = 'rating';
+
+      queryParams.append('sort_by', apiSortField);
+      queryParams.append('sort_direction', sortDirection);
 
       // Add pagination
       queryParams.append('page', page);
       queryParams.append('limit', limit);
+
 
       // Make API request
       const response = await fetch(`/api/filtered-products?${queryParams.toString()}`);
@@ -80,6 +151,53 @@ function FilteredProducts({ onProductSelect, onBack }) {
     }
 
     setLoading(false);
+  }
+
+  async function fetchEvictionPolicies() {
+    try {
+      const response = await fetch('/api/filtered-products/cache-policies');
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setEvictionPolicies(data.policies || []);
+      setCurrentPolicy(data.current || '');
+      setPolicyDescriptions(data.descriptions || {});
+    } catch (err) {
+    }
+  }
+
+  async function changeEvictionPolicy(policy) {
+    try {
+      const payload = { policy };
+
+      // Add weights if using custom policy
+      if (policy === 'custom') {
+        payload.weights = customWeights;
+      }
+
+      const response = await fetch('/api/filtered-products/cache-policy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      setCurrentPolicy(result.policy);
+
+      // Refresh cache stats to show the change
+      loadCacheStats();
+    } catch (err) {
+      setError(`Failed to change eviction policy: ${err.message}`);
+    }
   }
 
   async function loadCacheStats() {
@@ -156,10 +274,6 @@ function FilteredProducts({ onProductSelect, onBack }) {
     return brand.charAt(0).toUpperCase() + brand.slice(1);
   }
 
-  function getTopThreeIngredients(ingredientList) {
-    if (!Array.isArray(ingredientList)) return 'No ingredients listed';
-    return ingredientList.slice(0, 3).join(', ');
-  }
 
   return (
     <div className="recommendations">
@@ -217,17 +331,40 @@ function FilteredProducts({ onProductSelect, onBack }) {
               </select>
             </div>
 
+            {/* Product Type Filter */}
+            <div className="filter-group">
+              <label htmlFor="product_type">Product Type</label>
+              <select
+                id="product_type"
+                name="product_type"
+                value={filters.product_type}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Product Types</option>
+                {productTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Brand Filter */}
             <div className="filter-group">
               <label htmlFor="brand">Brand</label>
-              <input
-                type="text"
+              <select
                 id="brand"
                 name="brand"
                 value={filters.brand}
                 onChange={handleFilterChange}
-                placeholder="Enter brand name"
-              />
+              >
+                <option value="">All Brands</option>
+                {brands.map(brand => (
+                  <option key={brand} value={brand}>
+                    {brand.charAt(0).toUpperCase() + brand.slice(1)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Price Range Filters */}
@@ -273,29 +410,50 @@ function FilteredProducts({ onProductSelect, onBack }) {
               />
             </div>
 
-            {/* Checkbox Filters */}
-            <div className="filter-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="isSustainable"
-                  checked={filters.isSustainable}
-                  onChange={handleFilterChange}
-                />
-                Sustainable
-              </label>
+            {/* Rating Max Filter */}
+            <div className="filter-group">
+              <label htmlFor="maxRating">Max Rating</label>
+              <input
+                type="number"
+                id="maxRating"
+                name="maxRating"
+                value={filters.maxRating}
+                onChange={handleFilterChange}
+                placeholder="Max rating"
+                min="0"
+                max="5"
+                step="0.5"
+              />
             </div>
 
-            <div className="filter-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="isVegan"
-                  checked={filters.isVegan}
-                  onChange={handleFilterChange}
-                />
-                Vegan
-              </label>
+            {/* Tag Selection */}
+            <div className="filter-group full-width">
+              <label>Product Tags</label>
+              <div className="tags-container">
+                {availableTags.map(tag => (
+                  <label key={tag} className="tag-checkbox">
+                    <input
+                      type="checkbox"
+                      name={tag}
+                      checked={filters.selectedTags.includes(tag)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFilters(prev => ({
+                            ...prev,
+                            selectedTags: [...prev.selectedTags, tag]
+                          }));
+                        } else {
+                          setFilters(prev => ({
+                            ...prev,
+                            selectedTags: prev.selectedTags.filter(t => t !== tag)
+                          }));
+                        }
+                      }}
+                    />
+                    {tag}
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Sort Controls */}
@@ -343,7 +501,11 @@ function FilteredProducts({ onProductSelect, onBack }) {
                   brand: '',
                   minPrice: '',
                   maxPrice: '',
-                  minRating: ''
+                  minRating: '',
+                  maxRating: '',
+                  product_type: '',
+                  product_category: '',
+                  selectedTags: []
                 });
                 setSortField('rating');
                 setSortDirection('desc');
@@ -372,9 +534,135 @@ function FilteredProducts({ onProductSelect, onBack }) {
         {showCacheStats && cacheStats && (
           <div className="cache-stats">
             <h3>Cache Statistics</h3>
-            <p>Cache Size: {cacheStats.size} entries</p>
-            <p>Max Size: {cacheStats.maxSize} entries</p>
-            <p>Default TTL: {cacheStats.defaultTTL / 1000} seconds</p>
+            <div className="cache-stats-grid">
+              <div className="cache-stat-group">
+                <h4>Size</h4>
+                <p>Current: {cacheStats.size} entries</p>
+                <p>Maximum: {cacheStats.maxSize} entries</p>
+                <p>Utilization: {cacheStats.utilization}</p>
+              </div>
+
+              <div className="cache-stat-group">
+                <h4>Performance</h4>
+                <p>Hits: {cacheStats.hits}</p>
+                <p>Misses: {cacheStats.misses}</p>
+                <p>Hit Rate: {cacheStats.hitRate}</p>
+              </div>
+
+              <div className="cache-stat-group">
+                <h4>Eviction</h4>
+                <p>Policy: {cacheStats.evictionPolicy?.toUpperCase()}</p>
+                <p>Evictions: {cacheStats.evictions}</p>
+                <p>Expirations: {cacheStats.expirations}</p>
+                <p>TTL: {cacheStats.defaultTTL / 1000} seconds</p>
+              </div>
+            </div>
+
+            {/* Eviction Policy Controls */}
+            <div className="eviction-policy-controls">
+              <h4>Change Eviction Policy</h4>
+              <div className="policy-buttons">
+                {evictionPolicies.map(policy => (
+                  <button
+                    key={policy}
+                    className={`btn ${currentPolicy === policy ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => changeEvictionPolicy(policy)}
+                    title={policyDescriptions[policy]}
+                  >
+                    {policy.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Policy Weights (only shown when custom policy is selected) */}
+              {currentPolicy === 'custom' && (
+                <div className="custom-weights">
+                  <h5>Custom Policy Weights</h5>
+                  <div className="weight-sliders">
+                    <div className="weight-slider">
+                      <label>Recency: {customWeights.recency.toFixed(2)}</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={customWeights.recency}
+                        onChange={(e) => {
+                          const newValue = parseFloat(e.target.value);
+                          setCustomWeights(prev => ({
+                            ...prev,
+                            recency: newValue,
+                            // Adjust other weights to ensure they sum to 1
+                            frequency: (1 - newValue) * (prev.frequency / (prev.frequency + prev.age)),
+                            age: (1 - newValue) * (prev.age / (prev.frequency + prev.age))
+                          }));
+                        }}
+                      />
+                    </div>
+
+                    <div className="weight-slider">
+                      <label>Frequency: {customWeights.frequency.toFixed(2)}</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={customWeights.frequency}
+                        onChange={(e) => {
+                          const newValue = parseFloat(e.target.value);
+                          setCustomWeights(prev => ({
+                            ...prev,
+                            frequency: newValue,
+                            // Adjust other weights to ensure they sum to 1
+                            recency: (1 - newValue) * (prev.recency / (prev.recency + prev.age)),
+                            age: (1 - newValue) * (prev.age / (prev.recency + prev.age))
+                          }));
+                        }}
+                      />
+                    </div>
+
+                    <div className="weight-slider">
+                      <label>Age: {customWeights.age.toFixed(2)}</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={customWeights.age}
+                        onChange={(e) => {
+                          const newValue = parseFloat(e.target.value);
+                          setCustomWeights(prev => ({
+                            ...prev,
+                            age: newValue,
+                            // Adjust other weights to ensure they sum to 1
+                            recency: (1 - newValue) * (prev.recency / (prev.recency + prev.frequency)),
+                            frequency: (1 - newValue) * (prev.frequency / (prev.recency + prev.frequency))
+                          }));
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => changeEvictionPolicy('custom')}
+                  >
+                    Apply Custom Weights
+                  </button>
+                </div>
+              )}
+
+              <div className="policy-descriptions">
+                <h5>Policy Descriptions</h5>
+                <ul>
+                  {Object.entries(policyDescriptions).map(([policy, description]) => (
+                    <li key={policy}>
+                      <strong>{policy.toUpperCase()}</strong>: {description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -411,7 +699,10 @@ function FilteredProducts({ onProductSelect, onBack }) {
                   {/* Product image placeholder */}
                   <div className="product-image">
                     <div className="placeholder-image">
-                      <span className="product-icon">🧴</span>
+                      <img
+                        src="https://cdn.shopify.com/s/files/1/0593/2187/6633/collections/gua-sha-lady-placeholder_f387e950-9165-4436-99b7-cc7498ea2376.jpg?v=1638000265"
+                        alt="Makeup product placeholder"
+                      />
                     </div>
                   </div>
                   {/* Product information */}
@@ -420,11 +711,26 @@ function FilteredProducts({ onProductSelect, onBack }) {
                     <p className="brand">{formatBrandName(product.brand)}</p>
                     <p className="price">${parseFloat(product.price).toFixed(2)}</p>
                     <p className="rating">Rating: {product.rating} / 5</p>
-                    <p className="ingredients">
-                      <strong>Key Ingredients:</strong> {getTopThreeIngredients(product.ingredients || product.ingredient_list)}
-                    </p>
-                    {product.isSustainable && <span className="tag sustainable">Sustainable</span>}
-                    {product.isVegan && <span className="tag vegan">Vegan</span>}
+                    {/* Display product type if available */}
+                    {product.product_type && (
+                      <p className="product-type">
+                        <span className="type-badge">{product.product_type}</span>
+                      </p>
+                    )}
+
+                    {/* Display product tags if available */}
+                    {product.product_tags && Array.isArray(product.product_tags) && product.product_tags.length > 0 && (
+                      <p className="product-tags">
+                        <strong>Tags:</strong> {product.product_tags.join(', ')}
+                      </p>
+                    )}
+
+                    {/* Display color count if available */}
+                    {product.product_colors && Array.isArray(product.product_colors) && product.product_colors.length > 0 && (
+                      <p className="color-count">
+                        <strong>Colors:</strong> {product.product_colors.length} available
+                      </p>
+                    )}
                     <button
                       className="btn btn-primary"
                       onClick={() => onProductSelect(product)}

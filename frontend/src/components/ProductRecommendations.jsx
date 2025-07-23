@@ -9,6 +9,9 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [popularTags, setPopularTags] = useState([])
+  const [selectedTags, setSelectedTags] = useState([])
+  const [loadingTags, setLoadingTags] = useState(false)
 
   // Track view start time for calculating time spent on products
   const viewStartTime = useRef({});
@@ -17,6 +20,7 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
   useEffect(() => {
     testAPIConnectivity()
     loadRecommendations()
+    loadPopularTags()
 
     // Track page view for recommendations
     if (isAuthenticated.current) {
@@ -24,13 +28,72 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
     }
   }, [])
 
+  async function loadPopularTags() {
+    setLoadingTags(true)
+    try {
+      const tags = await SkincareAPI.getPopularTags(15) // Get top 15 tags
+      setPopularTags(tags)
+    } catch (err) {
+    } finally {
+      setLoadingTags(false)
+    }
+  }
+
+  async function handleTagSelect(tag) {
+    setLoading(true)
+    setError('')
+
+    try {
+      if (selectedTags.includes(tag)) {
+        setSelectedTags(prev => prev.filter(t => t !== tag))
+
+        // If no tags left selected, load all recommendations
+        if (selectedTags.length <= 1) {
+          await loadRecommendations()
+          return
+        }
+
+        // Otherwise filter by remaining tags
+        const newSelectedTags = selectedTags.filter(t => t !== tag)
+        const filteredProducts = await filterProductsByTags(newSelectedTags)
+        setProducts(filteredProducts)
+      }
+      // Otherwise add the tag to selected tags
+      else {
+        setSelectedTags(prev => [...prev, tag])
+        const filteredProducts = await filterProductsByTags([...selectedTags, tag])
+        setProducts(filteredProducts)
+      }
+    } catch (err) {
+      setError('Failed to filter products by tag. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filter products by selected tags
+  async function filterProductsByTags(tags) {
+    if (!tags || tags.length === 0) {
+      return await SkincareAPI.getRecommendations()
+    }
+
+    // Get all products first
+    const allProducts = await SkincareAPI.getRecommendations()
+
+    // Filter products that have ALL selected tags
+    return allProducts.filter(product =>
+      tags.every(tag =>
+        product.product_tags &&
+        Array.isArray(product.product_tags) &&
+        product.product_tags.some(t => t.toLowerCase() === tag.toLowerCase())
+      )
+    )
+  }
+
   async function testAPIConnectivity() {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://skincare-api.herokuapp.com'}/products?limit=1`)
-
-      if (response.ok) {
-        await response.json()
-      }
+      const response = await fetch(`/products?limit=1`);
+      await response.json();
     } catch (error) {
     }
   }
@@ -43,7 +106,7 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
       if (!token) return;
 
-      const requestUrl = `${process.env.REACT_APP_API_URL || 'https://skincare-api.herokuapp.com'}/api/recommendations/track-interaction`;
+      const requestUrl = `/api/recommendations/track-interaction`;
 
       let timeSpent = 0;
       if (interactionType === 'view' && productId && viewStartTime.current[productId]) {
@@ -69,7 +132,6 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
       });
     } catch (error) {
       // Silently fail - tracking errors shouldn't affect user experience
-      // In a production app, this would use a proper error logging service
     }
   }
 
@@ -78,21 +140,29 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
     setError('')
 
     try {
-      // Use user profile if available, otherwise use configuration values
-      const skinConcerns = userProfile?.skinConcerns || []
-      const skinType = userProfile?.skinType || ''
-      const maxProducts = parseInt(process.env.REACT_APP_MAX_RECOMMENDATIONS) || 12
+      // Use a reasonable number of products for good performance
+      const maxProducts = 50 // Show more products but not too many
 
-      const data = await SkincareAPI.getRecommendations(skinConcerns, skinType, maxProducts)
+      // Clear any existing data first
+      setProducts([])
+
+      const data = await SkincareAPI.getRecommendations(maxProducts)
 
       if (data && data.success === false) {
         setError(data.error || 'Failed to load recommendations. Please try again.')
         setProducts([])
       } else if (Array.isArray(data)) {
-        setProducts(data)
+        // Validate each product has the required fields
+        const validProducts = data.filter(product => {
+          if (!product || typeof product !== 'object') {
+            return false
+          }
+          return true
+        })
+
+        setProducts(validProducts)
       } else {
         setError('Received unexpected data format from search API.')
-        setProducts([])
         setProducts([])
       }
     } catch (err) {
@@ -175,6 +245,8 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
   }
 
   function makeProductNameNice(name) {
+    if (!name) return 'Unknown Product';
+
     const words = name.split(' ')
     const capitalizedWords = []
 
@@ -188,12 +260,26 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
   }
 
   function makeBrandNameNice(brand) {
-    return brand.charAt(0).toUpperCase() + brand.slice(1)
+    if (!brand) return 'Unknown Brand';
+    return brand.charAt(0).toUpperCase() + brand.slice(1);
   }
 
   function getTopThreeIngredients(ingredientList) {
-    const firstThree = ingredientList.slice(0, 3)
-    return firstThree.join(', ')
+    // Check if ingredientList exists and is an array
+    if (!ingredientList || !Array.isArray(ingredientList)) {
+      return 'No ingredients listed';
+    }
+    const firstThree = ingredientList.slice(0, 3);
+    return firstThree.join(', ');
+  }
+
+  function getTopTags(tagList) {
+    // Check if tagList exists and is an array
+    if (!tagList || !Array.isArray(tagList)) {
+      return 'No tags available';
+    }
+    // Show all tags instead of just the first two
+    return tagList.join(', ');
   }
 
   if (loading) {
@@ -241,26 +327,94 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
           </div>
         </form>
 
-        {/* Quick filter buttons */}
+        {/* Product type filter buttons */}
+        <h3 className="filter-section-title">Filter by Product Type</h3>
         <div className="filter-buttons">
           <button
             className="btn btn-secondary"
             onClick={loadRecommendations}
           >
-            Show Recommendations
+            Show All
           </button>
           <button
             className="btn btn-secondary"
-            onClick={() => searchForProductType('serum')}
+            onClick={() => searchForProductType('foundation')}
           >
-            Serums
+            Foundation
           </button>
           <button
             className="btn btn-secondary"
-            onClick={() => searchForProductType('moisturizer')}
+            onClick={() => searchForProductType('blush')}
           >
-            Moisturizers
+            Blush
           </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('bronzer')}
+          >
+            Bronzer
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('lipstick')}
+          >
+            Lipstick
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('mascara')}
+          >
+            Mascara
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('eyeshadow')}
+          >
+            Eyeshadow
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => searchForProductType('eyeliner')}
+          >
+            Eyeliner
+          </button>
+        </div>
+
+        {/* Tag filter buttons */}
+        <h3 className="filter-section-title">Filter by Tags</h3>
+        <div className="tag-filters">
+          {loadingTags ? (
+            <p>Loading tags...</p>
+          ) : popularTags.length > 0 ? (
+            <div className="tag-buttons">
+              {popularTags.map(({ tag, count }) => (
+                <button
+                  key={tag}
+                  className={`tag-button ${selectedTags.includes(tag) ? 'selected' : ''}`}
+                  onClick={() => handleTagSelect(tag)}
+                >
+                  {tag} ({count})
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p>No tags found</p>
+          )}
+
+          {selectedTags.length > 0 && (
+            <div className="selected-tags">
+              <p>Selected tags: {selectedTags.join(', ')}</p>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setSelectedTags([]);
+                  loadRecommendations();
+                }}
+              >
+                Clear Tags
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -284,23 +438,51 @@ function ProductRecommendations({ onProductSelect, onBack, userProfile }) {
         ) : (
           products.map(product => (
             <div key={product.id} className="product-card">
-              {/* Product image placeholder */}
+              {/* Product image */}
               <div className="product-image">
-                <div className="placeholder-image">
-                  <span className="product-icon">🧴</span>
-                </div>
+                {product.image_link ? (
+                  <img
+                    src={product.image_link}
+                    alt={product.name}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      // Use the new makeup placeholder image
+                      e.target.src = "https://cdn.shopify.com/s/files/1/0593/2187/6633/collections/gua-sha-lady-placeholder_f387e950-9165-4436-99b7-cc7498ea2376.jpg?v=1638000265";
+                    }}
+                  />
+                ) : (
+                  <div className="placeholder-image">
+                    <span className="product-icon">🧴</span>
+                  </div>
+                )}
               </div>
               {/* Product information */}
               <div className="product-info">
                 <h3>{makeProductNameNice(product.name)}</h3>
                 <p className="brand">{makeBrandNameNice(product.brand)}</p>
-                <p className="ingredients">
-                  <strong>Key Ingredients:</strong> {getTopThreeIngredients(product.ingredient_list)}
-                </p>
-                <p className="ingredient-count">
-                  {product.ingredient_list.length} total ingredients
-                </p>
-              <button
+
+                {/* Display product type if available */}
+                {product.product_type && (
+                  <p className="product-type">
+                    <span className="type-badge">{product.product_type}</span>
+                  </p>
+                )}
+
+                {/* Display product tags if available */}
+                {product.product_tags && Array.isArray(product.product_tags) && product.product_tags.length > 0 && (
+                  <p className="product-tags">
+                    <strong>Tags:</strong> {getTopTags(product.product_tags)}
+                  </p>
+                )}
+
+                {/* Display color count if available */}
+                {product.product_colors && Array.isArray(product.product_colors) && product.product_colors.length > 0 && (
+                  <p className="color-count">
+                    <strong>Colors:</strong> {product.product_colors.length} available
+                  </p>
+                )}
+
+                <button
                   className="btn btn-primary"
                   onClick={() => handleProductSelect(product)}
                   onMouseEnter={() => startProductViewTimer(product.id)}
