@@ -14,7 +14,8 @@ class CacheService {
       LRU: 'lru',
       LFU: 'lfu',
       FIFO: 'fifo',
-      CUSTOM: 'custom'
+      CUSTOM: 'custom',
+      TLRU: 'tlru'
     };
 
     this.config = {
@@ -121,6 +122,9 @@ class CacheService {
       case this.POLICIES.FIFO:
         keyToEvict = this.findOldestKey();
         break;
+      case this.POLICIES.TLRU:
+        keyToEvict = this.findTLRUKey();
+        break;
       case this.POLICIES.CUSTOM:
         keyToEvict = this.findCustomEvictionKey();
         break;
@@ -132,6 +136,33 @@ class CacheService {
       this.cache.delete(keyToEvict);
       this.stats.evictions++;
     }
+  }
+
+  findTLRUKey() {
+    const now = Date.now();
+    let tlruKey = null;
+    let highestScore = -Infinity;
+
+    for (const [key, item] of this.cache.entries()) {
+      // Calculate remaining TTL as a percentage of total TTL
+      const elapsedTime = now - item.createdAt;
+      const remainingTTLPercentage = Math.max(0, 1 - (elapsedTime / item.ttl));
+
+      // Calculate recency score (higher means less recently used)
+      const recencyScore = (now - item.lastAccessed) / this.config.defaultTTL;
+
+      // Combine recency with remaining TTL
+      // Items that are both less recently used AND have less remaining TTL
+      // will get a higher score (more likely to be evicted)
+      const combinedScore = recencyScore * (1 - remainingTTLPercentage);
+
+      if (combinedScore > highestScore) {
+        highestScore = combinedScore;
+        tlruKey = key;
+      }
+    }
+
+    return tlruKey;
   }
 
   findLRUKey() {

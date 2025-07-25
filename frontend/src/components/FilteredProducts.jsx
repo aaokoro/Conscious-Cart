@@ -30,13 +30,24 @@ function FilteredProducts({ onProductSelect, onBack }) {
     maxPrice: '',
     minRating: '',
     maxRating: '',
-    selectedTags: []
+    selectedTags: [],
+    // Specialized filters for product types
+    coverage: '',
+    finish: '',
+    shade: ''
   });
+
+  // State for specialized filters based on product type
+  const [specializedFilters, setSpecializedFilters] = useState([]);
 
   // State for dynamic data
   const [productTypes, setProductTypes] = useState([]);
   const [brands, setBrands] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
+  const [productColors, setProductColors] = useState([]);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [tagCoOccurrence, setTagCoOccurrence] = useState({});
+  const [relatedTags, setRelatedTags] = useState([]);
 
   const [sortField, setSortField] = useState('rating');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -50,6 +61,131 @@ function FilteredProducts({ onProductSelect, onBack }) {
     fetchProductMetadata();
     fetchEvictionPolicies();
   }, [page, limit]);
+
+  // Extract unique colors from products when products change
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const uniqueColors = new Set();
+
+      products.forEach(product => {
+        if (product.product_colors && Array.isArray(product.product_colors)) {
+          product.product_colors.forEach(color => {
+            if (color.hex_value) {
+              uniqueColors.add(color.hex_value);
+            }
+          });
+        }
+      });
+
+      setProductColors(Array.from(uniqueColors));
+    }
+  }, [products]);
+
+  // Update specialized filters based on selected product type
+  useEffect(() => {
+    // Define specialized filters for each product type
+    const productTypeFilters = {
+      foundation: [
+        { name: 'coverage', label: 'Coverage', options: ['full', 'medium', 'light', 'sheer'] },
+        { name: 'finish', label: 'Finish', options: ['matte', 'dewy', 'natural', 'radiant'] }
+      ],
+      lipstick: [
+        { name: 'finish', label: 'Finish', options: ['matte', 'cream', 'gloss', 'satin', 'metallic'] },
+        { name: 'shade', label: 'Shade Family', options: ['red', 'pink', 'nude', 'berry', 'coral', 'orange', 'purple'] }
+      ],
+      eyeshadow: [
+        { name: 'finish', label: 'Finish', options: ['matte', 'shimmer', 'glitter', 'metallic', 'satin'] },
+        { name: 'palette_size', label: 'Palette Size', options: ['single', 'small', 'medium', 'large'] }
+      ],
+      mascara: [
+        { name: 'effect', label: 'Effect', options: ['lengthening', 'volumizing', 'curling', 'defining', 'waterproof'] }
+      ],
+      blush: [
+        { name: 'formula', label: 'Formula', options: ['powder', 'cream', 'liquid', 'gel', 'tint'] },
+        { name: 'shade_family', label: 'Shade Family', options: ['pink', 'peach', 'coral', 'berry', 'red', 'nude'] }
+      ],
+      eyeliner: [
+        { name: 'formula', label: 'Formula', options: ['pencil', 'liquid', 'gel', 'kohl', 'cream'] }
+      ],
+      bronzer: [
+        { name: 'finish', label: 'Finish', options: ['matte', 'shimmer', 'satin', 'radiant'] }
+      ],
+      // Add more product types as needed
+    };
+
+    // Set specialized filters based on selected product type
+    if (filters.product_type && productTypeFilters[filters.product_type]) {
+      setSpecializedFilters(productTypeFilters[filters.product_type]);
+    } else {
+      setSpecializedFilters([]);
+    }
+  }, [filters.product_type]);
+
+  // Analyze tag co-occurrence when products change
+  useEffect(() => {
+    if (products && products.length > 0) {
+      // Create a map to store tag co-occurrence
+      const coOccurrenceMap = {};
+
+      // Analyze each product's tags
+      products.forEach(product => {
+        if (product.product_tags && Array.isArray(product.product_tags) && product.product_tags.length > 1) {
+          // For each tag in the product
+          product.product_tags.forEach(tag => {
+            if (!coOccurrenceMap[tag]) {
+              coOccurrenceMap[tag] = {};
+            }
+
+            // Count co-occurrence with other tags
+            product.product_tags.forEach(otherTag => {
+              if (tag !== otherTag) {
+                coOccurrenceMap[tag][otherTag] = (coOccurrenceMap[tag][otherTag] || 0) + 1;
+              }
+            });
+          });
+        }
+      });
+
+      setTagCoOccurrence(coOccurrenceMap);
+
+      // Update related tags based on selected tags
+      updateRelatedTags(coOccurrenceMap);
+    }
+  }, [products]);
+
+  // Update related tags when selected tags change
+  useEffect(() => {
+    updateRelatedTags(tagCoOccurrence);
+  }, [filters.selectedTags, tagCoOccurrence]);
+
+  // Function to update related tags based on selected tags
+  const updateRelatedTags = (coOccurrenceMap) => {
+    if (filters.selectedTags && filters.selectedTags.length > 0 && Object.keys(coOccurrenceMap).length > 0) {
+      // Collect related tags for all selected tags
+      const relatedTagsCount = {};
+
+      filters.selectedTags.forEach(selectedTag => {
+        if (coOccurrenceMap[selectedTag]) {
+          Object.entries(coOccurrenceMap[selectedTag]).forEach(([relatedTag, count]) => {
+            // Don't include tags that are already selected
+            if (!filters.selectedTags.includes(relatedTag)) {
+              relatedTagsCount[relatedTag] = (relatedTagsCount[relatedTag] || 0) + count;
+            }
+          });
+        }
+      });
+
+      // Sort related tags by occurrence count
+      const sortedRelatedTags = Object.entries(relatedTagsCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5) // Limit to top 5 related tags
+        .map(([tag]) => tag);
+
+      setRelatedTags(sortedRelatedTags);
+    } else {
+      setRelatedTags([]);
+    }
+  };
 
   // Fetch product types, brands, and tags from the API
   async function fetchProductMetadata() {
@@ -283,9 +419,9 @@ function FilteredProducts({ onProductSelect, onBack }) {
           ← Back to Dashboard
         </button>
 
-        <h2>Product Filtering & Sorting with Caching</h2>
+        <h2>Beauty Finder</h2>
         <p>
-          Filter and sort products with intelligent caching for improved performance.
+          Find your perfect beauty products
           {queryTime && (
             <span className="query-time"> Query time: {queryTime.toFixed(2)}ms</span>
           )}
@@ -426,6 +562,44 @@ function FilteredProducts({ onProductSelect, onBack }) {
               />
             </div>
 
+            {/* Color Palette Filter */}
+            <div className="filter-group full-width">
+              <label>Color Filter</label>
+              <div className="color-palette">
+                {productColors.length > 0 ? (
+                  <div className="color-swatches">
+                    {/* Option to clear color selection */}
+                    <div
+                      className={`color-swatch ${!selectedColor ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSelectedColor('');
+                        setFilters(prev => ({ ...prev, color: '' }));
+                      }}
+                      style={{ background: '#fff', border: '1px solid #ccc' }}
+                    >
+                      <span>Clear</span>
+                    </div>
+
+                    {/* Color swatches */}
+                    {productColors.map(color => (
+                      <div
+                        key={color}
+                        className={`color-swatch ${selectedColor === color ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          setFilters(prev => ({ ...prev, color }));
+                        }}
+                        style={{ background: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p>No colors available for current products</p>
+                )}
+              </div>
+            </div>
+
             {/* Tag Selection */}
             <div className="filter-group full-width">
               <label>Product Tags</label>
@@ -454,7 +628,61 @@ function FilteredProducts({ onProductSelect, onBack }) {
                   </label>
                 ))}
               </div>
+
+              {/* Related Tags Section - Tag Co-occurrence Analytics */}
+              {relatedTags.length > 0 && (
+                <div className="related-tags">
+                  <h4>Related Tags</h4>
+                  <p>Based on your selected tags, you might also be interested in:</p>
+                  <div className="related-tags-list">
+                    {relatedTags.map(tag => (
+                      <button
+                        key={tag}
+                        className="related-tag-btn"
+                        onClick={() => {
+                          if (!filters.selectedTags.includes(tag)) {
+                            setFilters(prev => ({
+                              ...prev,
+                              selectedTags: [...prev.selectedTags, tag]
+                            }));
+                          }
+                        }}
+                        disabled={filters.selectedTags.includes(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Specialized filters based on product type */}
+            {specializedFilters.length > 0 && (
+              <div className="filter-group full-width">
+                <label>Specialized Filters for {filters.product_type}</label>
+                <div className="specialized-filters">
+                  {specializedFilters.map(filter => (
+                    <div key={filter.name} className="specialized-filter">
+                      <label htmlFor={filter.name}>{filter.label}</label>
+                      <select
+                        id={filter.name}
+                        name={filter.name}
+                        value={filters[filter.name] || ''}
+                        onChange={handleFilterChange}
+                      >
+                        <option value="">All {filter.label}s</option>
+                        {filter.options.map(option => (
+                          <option key={option} value={option}>
+                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Sort Controls */}
             <div className="filter-group">
@@ -468,6 +696,7 @@ function FilteredProducts({ onProductSelect, onBack }) {
                 <option value="price">Price</option>
                 <option value="name">Name</option>
                 <option value="brand">Brand</option>
+                <option value="brand_popularity">Brand Popularity</option>
               </select>
             </div>
 
@@ -660,6 +889,11 @@ function FilteredProducts({ onProductSelect, onBack }) {
                       <strong>{policy.toUpperCase()}</strong>: {description}
                     </li>
                   ))}
+                  {!policyDescriptions['tlru'] && (
+                    <li>
+                      <strong>TLRU</strong>: Time-aware Least Recently Used - Balances access recency with remaining TTL for smarter eviction decisions
+                    </li>
+                  )}
                 </ul>
               </div>
             </div>
